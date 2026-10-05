@@ -34,7 +34,7 @@ RUNNING with the last lines, or DONE with the run's summary. `blindqa_jobs` list
 ## Reading results (cheap first)
 1. `blindqa_summary { run }` — findings grouped by severity, ≤ 200 lines. Start here.
 2. `blindqa_findings { run, severity: "high" }` — screens and screenshot paths for the ones you verify.
-3. `blindqa_escalations { run }` — answers Jev was unsure about; decide them yourself.
+3. `blindqa_unsure { run }` — act-mode outcomes the script checks couldn't settle; look at their screenshots.
 4. `blindqa_compare { before, after }` — NEW / GONE / STILL between two runs.
 Then hand over to `blindqa-triage` to decide what is real and write it up.
 

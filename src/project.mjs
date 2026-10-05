@@ -117,7 +117,6 @@ export function initProject(source, { dir, ref, name, force = false, quiet = fal
       start: { commands: found.startCommands, health: found.health },
       mail: { mailpit: found.mailpit },
       safety: { allowWrite: ['^/api/auth/refresh$'] },
-      jev: { model: process.env.TYPESAFE_MODEL ?? 'jev-latest', thresholds: { default: 0.8 } },
       browser: { port: 9333, viewport: { width: 1440, height: 900 } },
       detected: found.notes,
     }

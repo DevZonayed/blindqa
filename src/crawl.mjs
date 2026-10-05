@@ -1,7 +1,8 @@
 /**
  * Read-only crawler: walks the app like a person for one role and checks what a person can actually
- * see and use on every screen. Fixed rules decide what to touch; with Jev on, each screen also gets
- * person-like judgments (is it healthy, does it leak raw codes, does it contradict itself, are names clear).
+ * see and use on every screen. Fixed rules decide what to touch, and each screen also gets script checks
+ * a person would notice: is it an error or blank page, does it show raw ids or codes, can a screen-reader
+ * user tell its controls apart (src/judge.mjs). No model is involved.
  *
  *   blindqa crawl --role ADMIN [--max 60] [--only "Settings|Clients"] [--phone] [--start /path] [--headless] [--run name]
  *
@@ -15,17 +16,16 @@
  *   nav item. Never goes back up for a control it already passed.
  * Read-only for real: every write request (POST/PUT/PATCH/DELETE) to the app is blocked at the network
  * level and logged with the click that caused it.
- * Output: .blindqa/runs/<run>/map.json, findings.jsonl, jev-log.jsonl, jev-ledger.json, summary.md
+ * Output: .blindqa/runs/<run>/map.json, findings.jsonl, summary.md
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { openSession, sessionOptions, DEFAULT_VIEWPORT } from './browser/session.mjs'
 import { openAs, persistSession } from './auth/login.mjs'
 import { glideTo } from './browser/cursor.mjs'
 import { ctx, humanClick, settle, flushSignals, finding, log, pause, saveJson, scrollLockLeak, canSeeInPage, animationsDone, VISIBLE, RUN_DIR, useRunDir, watch } from './browser/human.mjs'
-import { digest } from './browser/extract.mjs'
+import { extractCandidates } from './browser/extract.mjs'
 import { loadProject } from './project.mjs'
-import { engineFor, certainty } from './jev/engine.mjs'
-import { Q } from './jev/questions.mjs'
+import { screenFacts, screenHealth, rawValues, unclearNames } from './judge.mjs'
 import { writeSummary } from './summary.mjs'
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d }
@@ -39,7 +39,6 @@ const who = project.role(ROLE)
 useRunDir(project.runDir(arg('run', `crawl-${ROLE.toLowerCase()}${PHONE ? '-phone' : ''}-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`)))
 const ORIGINS = [...new Set([...Object.values(project.profile.apps ?? {}).map((a) => new URL(a.baseUrl).origin), ...(project.profile.api?.origins ?? []).map((o) => new URL(o).origin)])]
 watch.origins = ORIGINS
-const jev = process.argv.includes('--no-jev') ? null : engineFor(project, RUN_DIR)
 
 // Never click these (outside dialogs' Cancel/Close and the empty-submit probe, which can't write).
 const DANGER = /\b(delete|remove|archive|deactivate|suspend|sign ?out|log ?out|revoke|reset|disable|void|submit|approve|reject|send|finali[sz]e|post|pay|publish|lock|unlock|disconnect|purge|erase|enter workspace|impersonat|rename|domains?|connect|download|export|print|mark as|restore|activate|cancel subscription|run|retry)\b/i
@@ -237,35 +236,21 @@ async function report(page, seen, where) {
   if (tinyTargets.length) await finding(page, 'small-target', 'low', `${where}: ${tinyTargets.length} clickable control(s) smaller than 24×24 px: ${ex(tinyTargets, (s) => `"${s.name || s.role}" ${s.size.join('×')}`)}`, { noShot: true })
   const overflowX = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth).catch(() => 0)
   if (overflowX > 2) await finding(page, 'page-scrolls-sideways', 'medium', `${where}: the whole page is ${overflowX}px wider than the window`)
-  const judged = await judgeScreen(page, all, where)
-  return { controls: all.length, blocked: blocked.length, clipped: clipped.length, unnamed: unnamed.length, ...judged }
+  const checked = await checkScreen(page, where)
+  return { controls: all.length, blocked: blocked.length, clipped: clipped.length, unnamed: unnamed.length, ...checked }
 }
 
-/**
- * Person-like judgments about one screen, all in one Jev request (cached while the screen is unchanged).
- * Acts only on confident answers; unsure ones are parked for the coding agent in escalations.jsonl.
- */
-async function judgeScreen(page, all, where) {
-  if (!jev?.enabled) return {}
-  const names = all.filter((s) => s.name && /^(button|a|link|switch|checkbox|tab|combobox)$/.test(s.role))
-  const dupes = names.filter((s) => names.filter((t) => t.name === s.name).length > 1 || s.name.length <= 3)
-  const unique = [...new Map(dupes.map((s) => [s.name, s])).values()].slice(0, 8)
-  const questions = { screenKind: Q.screenKind(), rawText: Q.rawText(), contradiction: Q.contradiction() }
-  unique.forEach((s, i) => { questions[`nameClear${i}`] = Q.nameClear({ role: s.role, name: s.name }) })
-  const state = { screen: where, route: routeOf(page.url()), text: await digest(page, { maxChars: 2500 }), controls: names.slice(0, 60).map((s) => `${s.role} "${s.name}"`) }
-  const { answers } = await jev.ask(state, questions, { tag: 'crawl.screen' })
-  const out = { kind: answers.screenKind?.choice ?? null }
-  const sure = (a, name) => a && jev.confident(a, name)
-  if (/^(error|blank|loading)$/.test(answers.screenKind?.choice ?? '') && sure(answers.screenKind, 'screenKind')) {
-    await finding(page, 'screen-unhealthy', answers.screenKind.choice === 'loading' ? 'medium' : 'high', `${where}: the screen reads as ${answers.screenKind.choice.replace('_', ' ')} instead of content`, { judgedBy: 'jev' })
-  }
-  const yes = (a, name) => a && a.noul >= 0.5 && sure(a, name)
-  if (yes(answers.rawText, 'rawText')) await finding(page, 'raw-text', 'low', `${where}: the screen shows internal codes, ids or raw values a user shouldn't see`, { judgedBy: 'jev', needsReview: true })
-  if (yes(answers.contradiction, 'contradiction')) await finding(page, 'contradiction', 'medium', `${where}: two parts of the screen seem to disagree about the same thing`, { judgedBy: 'jev', needsReview: true })
-  const unclear = unique.filter((s, i) => answers[`nameClear${i}`] && answers[`nameClear${i}`].noul < 0.5 && sure(answers[`nameClear${i}`], 'nameClear'))
-  if (unclear.length) await finding(page, 'a11y-unclear-name', 'medium', `${where}: ${unclear.length} control name(s) don't say what they act on (a screen reader hears only the name): ${unclear.map((s) => `"${s.name}"`).join(', ')}`, { judgedBy: 'jev', noShot: true })
-  for (const [id, a] of Object.entries(answers)) if (a && !jev.confident(a, id.replace(/\d+$/, ''))) jev.escalate({ screen: where, question: id, answer: a.choice ?? a.noul ?? a.score, certainty: Number(certainty(a).toFixed(3)) })
-  return out
+/** What a person would notice about the screen as a whole: an error or blank page, raw values, controls they can't tell apart. */
+async function checkScreen(page, where) {
+  const facts = await screenFacts(page).catch(() => null)
+  if (!facts) return {}
+  const health = screenHealth(facts)
+  if (health.kind !== 'content') await finding(page, 'screen-unhealthy', health.kind === 'loading' ? 'medium' : 'high', `${where}: the screen shows ${health.kind === 'error' ? `an error ("${health.why}")` : health.why} instead of content`)
+  const raw = rawValues(facts.mainText)
+  if (raw.length) await finding(page, 'raw-text', 'low', `${where}: the screen shows values a user shouldn't see: ${raw.map((v) => `"${v.slice(0, 60)}"`).join(', ')}`, { needsReview: true })
+  const unclear = unclearNames((await extractCandidates(page).catch(() => ({ candidates: [] }))).candidates)
+  if (unclear.length) await finding(page, 'a11y-unclear-name', unclear.some((u) => u.why === 'only a symbol') ? 'medium' : 'low', `${where}: ${unclear.length} control name(s) don't say what they act on (a screen reader hears only the name): ${unclear.slice(0, 8).map((u) => `"${u.name}" (${u.why})`).join(', ')}`, { noShot: true })
+  return { kind: health.kind }
 }
 
 /* ------------------------------------------------------------------ menus, selects, forms */
@@ -527,7 +512,7 @@ async function closeOverlays(page) {
 
 /* ------------------------------------------------------------------ main */
 const session = await openSession(sessionOptions(project, { visible: VISIBLE }))
-const page = await openAs(session, project, ROLE, { jev })
+const page = await openAs(session, project, ROLE)
 if (!page) throw new Error(`${ROLE} could not sign in`)
 if (PHONE) { await page.setViewportSize({ width: 390, height: 844 }); await page.reload(); await settle(page); log('phone size: 390×844') }
 map.viewport = page.viewportSize()
@@ -633,7 +618,6 @@ const counts = {}
 for (const line of (existsSync(`${RUN_DIR}findings.jsonl`) ? readFileSync(`${RUN_DIR}findings.jsonl`, 'utf8') : '').trim().split('\n').filter(Boolean)) { const f = JSON.parse(line); counts[f.kind] = (counts[f.kind] ?? 0) + 1 }
 console.log(`\n✔ crawl ${ROLE}: ${map.screens.length} screens in ${map.seconds}s, ${map.blockedWrites.length} write(s) blocked → ${RUN_DIR}`)
 console.log('findings by kind:', counts)
-jev?.save()
-writeSummary(RUN_DIR, { title: `crawl ${ROLE}${PHONE ? ' (phone)' : ''}`, map, jev: jev?.summary() })
+writeSummary(RUN_DIR, { title: `crawl ${ROLE}${PHONE ? ' (phone)' : ''}`, map })
 await persistSession(session, project, ROLE)
 await session.close()

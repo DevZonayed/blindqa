@@ -17,7 +17,6 @@ import { initProject, loadProject, findProjectRoot } from '../src/project.mjs'
 import { doctor } from '../src/doctor.mjs'
 import { startJob, jobStatus, listJobs, stopJob, SRC } from '../src/jobs.mjs'
 import { listRuns, groupFindings, compareRuns, readJsonl } from '../src/summary.mjs'
-import { shadowReport } from '../src/shadow.mjs'
 import { installGuard, checkGuard } from '../src/guard.mjs'
 import { LAYOUT } from '../src/layout.mjs'
 import { detectMachine, resolveBrowser, writeMachine, MODES, MACHINE_FILE } from '../src/machine.mjs'
@@ -42,10 +41,10 @@ tool('blindqa_init',
     return text({ root: r.root, profile: join(r.dir, 'profile.json'), credentials: join(r.dir, 'credentials.json'), detected: r.detected.notes, next: 'Start the app (profile.start.commands), add roles to profile.json and their logins to credentials.json, then call blindqa_doctor.' })
   })
 
-tool('blindqa_doctor', 'Check that everything needed for a run is in place: Chromium, project profile, app reachable, roles with credentials, mail catcher, Jev key (and optionally a live Jev answer).',
-  { pingJev: z.boolean().optional() },
-  async ({ project, pingJev }) => {
-    const r = await doctor(project, { pingJev })
+tool('blindqa_doctor', 'Check that everything needed for a run is in place: Chromium, project profile, never-push guard, app reachable, roles with credentials, mail catcher.',
+  {},
+  async ({ project }) => {
+    const r = await doctor(project)
     return text(r.checks.map((c) => `${c.pass ? 'OK  ' : 'FAIL'} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`).join('\n'))
   })
 
@@ -57,14 +56,14 @@ tool('blindqa_setup', 'Install the Chromium build that Playwright drives (one ti
     return text(r.status === 0 ? 'Chromium installed.' : `Install failed: ${(r.stderr || r.stdout).slice(-800)}`)
   })
 
-tool('blindqa_profile', 'Show the project profile (apps, roles, safety rules, Jev settings) and which roles have credentials. Never shows passwords.', {},
+tool('blindqa_profile', 'Show the project profile (apps, roles, start commands, safety rules) and which roles have credentials. Never shows passwords.', {},
   async ({ project }) => {
     const p = loadProject(project)
     return text({ root: p.root, profile: p.profile, rolesWithCredentials: Object.keys(p.credentials.roles ?? {}).filter((r) => p.credentials.roles[r]?.email) })
   })
 
 tool('blindqa_crawl',
-  'Start a read-only crawl as one role in the background (writes to the app are blocked at the network level). Visits every screen like a person, checks visibility, menus, forms (empty submit), scrolling, console/HTTP errors; with Jev, also judges each screen. Returns a job id; poll blindqa_job until done, then read its summary.',
+  'Start a read-only crawl as one role in the background (writes to the app are blocked at the network level). Visits every screen like a person, checks visibility, menus, forms (empty submit), scrolling, console/HTTP errors, error or blank screens, raw ids and codes shown to users, and control names a screen reader cannot tell apart. Returns a job id; poll blindqa_job until done, then read its summary.',
   {
     role: z.string().describe('Role name from profile.roles, e.g. ADMIN'),
     phone: z.boolean().optional().describe('390x844 window, navigation through the menu button'),
@@ -72,11 +71,10 @@ tool('blindqa_crawl',
     only: z.string().optional().describe('Regex: only nav items whose name matches'),
     start: z.string().optional().describe('Hub path: crawl every screen linked from this page instead of the nav'),
     headless: z.boolean().optional().describe('No visible window (faster, parallel-safe)'),
-    jev: z.boolean().optional().describe('Set false to crawl with fixed rules only'),
   },
-  async ({ project, role, phone, max, only, start, headless, jev }) => {
+  async ({ project, role, phone, max, only, start, headless }) => {
     const p = loadProject(project)
-    const args = ['--role', role, ...(phone ? ['--phone'] : []), ...(max ? ['--max', String(max)] : []), ...(only ? ['--only', only] : []), ...(start ? ['--start', start] : []), ...(headless ? ['--headless'] : []), ...(jev === false ? ['--no-jev'] : [])]
+    const args = ['--role', role, ...(phone ? ['--phone'] : []), ...(max ? ['--max', String(max)] : []), ...(only ? ['--only', only] : []), ...(start ? ['--start', start] : []), ...(headless ? ['--headless'] : [])]
     const job = startJob(p, { kind: `crawl-${role.toLowerCase()}${phone ? '-phone' : ''}`, script: join(SRC, 'crawl.mjs'), args })
     return text({ job: job.id, runDir: job.runDir, note: 'Running in the background. Call blindqa_job with this id later; do not poll in a tight loop.' })
   })
@@ -92,12 +90,12 @@ tool('blindqa_act',
   })
 
 tool('blindqa_journey',
-  'Run a scripted journey file (.mjs using the blindqa harness) in the background. With shadow=true, Jev guesses every click the script makes and its accuracy is reported — the script still decides, so nothing changes in the app because of Jev.',
-  { file: z.string().describe('Journey file path (absolute or relative to the project root)'), shadow: z.boolean().optional(), args: z.array(z.string()).optional().describe('Extra arguments for the journey') },
-  async ({ project, file, shadow, args = [] }) => {
+  'Run a scripted journey file (.mjs using the blindqa harness) in the background. The routes it visits are recorded so blindqa_retest knows which journeys cover a changed page.',
+  { file: z.string().describe('Journey file path (absolute or relative to the project root)'), args: z.array(z.string()).optional().describe('Extra arguments for the journey') },
+  async ({ project, file, args = [] }) => {
     const p = loadProject(project)
     const abs = existsSync(file) ? file : join(p.root, file)
-    const job = startJob(p, { kind: abs.split('/').pop().replace(/\.m?js$/, ''), script: join(SRC, 'run-journey.mjs'), args: [abs, ...(shadow ? ['--shadow'] : []), ...args] })
+    const job = startJob(p, { kind: abs.split('/').pop().replace(/\.m?js$/, ''), script: join(SRC, 'run-journey.mjs'), args: [abs, ...args] })
     return text({ job: job.id, runDir: job.runDir })
   })
 
@@ -139,14 +137,8 @@ tool('blindqa_compare', 'Compare two runs: NEW, GONE and STILL findings (by fing
     return text({ new: brief(r.new), gone: brief(r.gone), stillCount: r.still.length })
   })
 
-tool('blindqa_shadow_report', 'Jev accuracy from shadow-mode journey runs: top-1/top-3, accuracy per confidence band, the safe threshold, and every miss.', { runs: z.array(z.string()) },
-  async ({ project, runs }) => {
-    const p = loadProject(project)
-    return text(shadowReport(runs.map((r) => p.path('runs', r, 'shadow.jsonl'))))
-  })
-
-tool('blindqa_escalations', 'Jev answers that were below their confidence threshold in a run — the only items that need an agent or a person to look.', { run: z.string(), limit: z.number().int().optional() },
-  async ({ project, run, limit = 30 }) => text(readJsonl(loadProject(project).path('runs', run, 'escalations.jsonl')).slice(0, limit)))
+tool('blindqa_unsure', 'Act-mode outcomes the script checks could not settle (effects.jsonl entries with sure=false), with their screenshots: the only items in a run that need an agent or a person to look.', { run: z.string(), limit: z.number().int().optional() },
+  async ({ project, run, limit = 30 }) => text(readJsonl(loadProject(project).path('runs', run, 'effects.jsonl')).filter((e) => e.sure === false).slice(0, limit)))
 
 const lines = (checks) => checks.map((c) => `${c.pass ? 'OK  ' : 'FAIL'} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`).join('\n')
 

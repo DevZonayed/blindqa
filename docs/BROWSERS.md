@@ -1,5 +1,5 @@
 ---
-title: "Browser modes — local, headless, CDP, n.eko, Orca"
+title: "Browser setup for QA testing — local, headless CI, CDP, n.eko and Orca"
 description: "Run blindqa against a local Playwright window, headless CI, your own Chrome over CDP, an n.eko container or Orca, with exact setup steps for each machine."
 ---
 

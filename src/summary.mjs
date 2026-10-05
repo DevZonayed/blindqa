@@ -28,9 +28,9 @@ export function groupFindings(runDir, keep = null) {
     .sort((a, b) => SEV.indexOf(a.severity) - SEV.indexOf(b.severity) || b.count - a.count)
 }
 
-export function writeSummary(runDir, { title, map = null, jev = null, extra = [] } = {}) {
+export function writeSummary(runDir, { title, map = null, extra = [] } = {}) {
   const groups = groupFindings(runDir)
-  const escalations = readJsonl(join(runDir, 'escalations.jsonl'))
+  const unsure = readJsonl(join(runDir, 'effects.jsonl')).filter((e) => e.sure === false)
   const bySev = Object.fromEntries(SEV.map((s) => [s, groups.filter((g) => g.severity === s).length]))
   const lines = [
     `# ${title ?? 'blindqa run'}`,
@@ -38,15 +38,14 @@ export function writeSummary(runDir, { title, map = null, jev = null, extra = []
     `Run folder: \`${runDir}\``,
     map ? `Screens: ${map.screens?.length ?? 0} · seconds: ${map.seconds ?? '?'} · writes blocked: ${map.blockedWrites?.length ?? 0}` : '',
     `Findings (grouped): ${groups.length} — critical ${bySev.critical}, high ${bySev.high}, medium ${bySev.medium}, low ${bySev.low}`,
-    jev ? `Jev: ${jev.enabled ? `${jev.requests} requests, ${jev.questions} questions, cache hit ${Math.round(jev.cacheHitRate * 100)}%, ${jev.inputTokens} tokens, $${jev.costUsd}, p50 ${jev.p50ms} ms, errors ${jev.errors}` : 'off (no TYPESAFE_API_KEY or --no-jev)'}` : '',
-    escalations.length ? `Unsure Jev answers parked for review: ${escalations.length} (escalations.jsonl)` : '',
+    unsure.length ? `Outcomes the checks couldn't settle: ${unsure.length} (effects.jsonl, "sure": false; worth a look at their screenshots)` : '',
     ...extra,
     '',
     '## Findings',
     '',
     '| Sev | Kind | Times | What | Screens | Review |',
     '|---|---|---|---|---|---|',
-    ...groups.slice(0, 60).map((g) => `| ${g.severity} | ${g.kind} | ${g.count} | ${String(g.detail).replace(/\|/g, '/').slice(0, 220)} | ${g.screens.slice(0, 3).join('; ').replace(/\|/g, '/').slice(0, 120)}${g.screens.length > 3 ? ` +${g.screens.length - 3}` : ''} | ${g.needsReview ? 'yes' : ''}${g.judgedBy === 'jev' ? ' (jev)' : ''} |`),
+    ...groups.slice(0, 60).map((g) => `| ${g.severity} | ${g.kind} | ${g.count} | ${String(g.detail).replace(/\|/g, '/').slice(0, 220)} | ${g.screens.slice(0, 3).join('; ').replace(/\|/g, '/').slice(0, 120)}${g.screens.length > 3 ? ` +${g.screens.length - 3}` : ''} | ${g.needsReview ? 'yes' : ''} |`),
     groups.length > 60 ? `\n…and ${groups.length - 60} more in findings.jsonl` : '',
   ].filter((l) => l !== '')
   writeFileSync(join(runDir, 'summary.md'), lines.join('\n') + '\n')

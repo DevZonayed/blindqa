@@ -1,7 +1,7 @@
 /**
  * Human-like browser driving + "can a person actually see/use this?" checks.
- * Implements the three fixes from bench/jev/TODO.md:
- *   1. openers / menus / row-scoped actions are first-class (see crawler.mjs)
+ * Covers what a script-only robot usually misses:
+ *   1. openers / menus / row-scoped actions are first-class (see crawl.mjs)
  *   2. canSee(): visible to a PERSON — in viewport, not covered, not clipped, no invisible ancestor,
  *      readable contrast, sensible size
  *   3. scrollToFind(): mouse-wheel scrolling in steps, re-checking after each step, so scroll-locked
@@ -23,7 +23,7 @@ export function useRunDir(dir) {
 /** Origins of the app under test: only their 4xx/5xx responses become findings. Empty = any localhost. */
 export const watch = { origins: [] }
 
-/** Optional hooks, e.g. shadow mode asks Jev which control it would pick before every click. */
+/** Optional hooks for custom harnesses, e.g. a callback before every click. */
 export const hooks = { beforeClick: null }
 
 export const VISIBLE = !process.argv.includes('--headless')
@@ -477,7 +477,7 @@ async function clickLikeAPerson(page, target, label, timeout) {
 export async function humanClick(page, locator, label, { mustSee = true, timeout = 6000 } = {}) {
   await beginStep(page, `click ${label}`)
   const target = locator.first()
-  if (hooks.beforeClick) await hooks.beforeClick(page, target, label).catch((e) => log(`shadow: ${String(e.message ?? e).slice(0, 120)}`))
+  if (hooks.beforeClick) await hooks.beforeClick(page, target, label).catch((e) => log(`beforeClick hook: ${String(e.message ?? e).slice(0, 120)}`))
   const found = await scrollWithRecovery(page, target, label)
   if (!found.found) {
     await finding(page, found.notFound ? 'element-not-found' : 'unreachable-by-scrolling', found.notFound ? 'medium' : 'high', `"${label}": ${found.reason}`)

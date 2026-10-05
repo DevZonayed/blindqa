@@ -4,7 +4,7 @@
  *
  *   blindqa init <github-url | owner/repo | folder> [--dir d] [--ref branch] [--name n]
  *   (every command accepts --project <path> to pick the app; default: walk up from the current folder)
- *   blindqa doctor [--jev]                 check browser, never-push guard, profile, app, credentials, Jev
+ *   blindqa doctor                         check browser, never-push guard, profile, app, credentials
  *   blindqa setup                          install the Chromium that Playwright drives
  *   blindqa guard [--install] [--hook-script]   prove nothing in .blindqa/ can be committed or pushed
  *   blindqa layout                         what lives where inside .blindqa/
@@ -16,13 +16,11 @@
  *   blindqa retest [--since ref] [--run-tests] [--headless] [--accept] [--all-roles] [--bg]
  *                                          plan (default) or run only the crawls/journeys the changes touch
  *   blindqa browser start|stop|status      the one always-open window used by visible runs (local mode)
- *   blindqa crawl --role R [--phone] [--max N] [--only re] [--start /path] [--headless] [--no-jev] [--bg]
- *   blindqa journey <file.mjs> [--shadow] [--bg] [journey args…]
+ *   blindqa crawl --role R [--phone] [--max N] [--only re] [--start /path] [--headless] [--bg]
+ *   blindqa journey <file.mjs> [--bg] [journey args…]
  *   blindqa act --role R [--only re] [--max-actions N] [--headless] [--bg]   use every option (REAL writes; own records only for destructive ones)
  *   blindqa signin <ROLE> [--headless]     sign in once (saves the session) and show the landing screen
- *   blindqa shadow-report <run>…          Jev accuracy on scripted journeys (shadow mode)
  *   blindqa runs | summary [run] | compare <before> <after> | jobs | job <id> | stop <id>
- *   blindqa jev-ping                       one tiny question to prove the key and model work
  *   blindqa mcp                            MCP server on stdio (for Claude Code, Codex, any MCP client)
  */
 import { spawn, execFileSync } from 'node:child_process'
@@ -39,7 +37,7 @@ if (pi >= 0) { process.env.BLINDQA_PROJECT = resolve(argvAll[pi + 1]); argvAll.s
 const [cmd = 'help', ...rest] = argvAll
 const flag = (k) => rest.includes(`--${k}`)
 const opt = (k, d) => { const i = rest.indexOf(`--${k}`); return i >= 0 ? rest[i + 1] : d }
-const BOOL_FLAGS = ['--shadow', '--bg', '--phone', '--headless', '--no-jev', '--jev', '--quiet', '--force', '--install', '--hook-script', '--reset', '--json', '--run-tests', '--accept', '--full', '--all-roles']
+const BOOL_FLAGS = ['--bg', '--phone', '--headless', '--quiet', '--force', '--install', '--hook-script', '--reset', '--json', '--run-tests', '--accept', '--full', '--all-roles']
 const positional = rest.filter((a, i) => !a.startsWith('--') && !(i > 0 && rest[i - 1].startsWith('--') && !BOOL_FLAGS.includes(rest[i - 1])))
 
 const lazy = {
@@ -85,7 +83,7 @@ const commands = {
 
   async doctor() {
     const { doctor } = await import(join(SRC, 'doctor.mjs'))
-    const r = await doctor(undefined, { pingJev: flag('jev') })
+    const r = await doctor()
     for (const c of r.checks) console.log(`${c.pass ? '✔' : '✖'} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`)
     process.exitCode = r.ok ? 0 : 1
   },
@@ -225,7 +223,7 @@ const commands = {
   async journey() {
     const script = join(SRC, 'run-journey.mjs')
     const file = positional[0]
-    if (!file) throw new Error('usage: blindqa journey <file.mjs> [--shadow] [--bg]')
+    if (!file) throw new Error('usage: blindqa journey <file.mjs> [--bg]')
     const args = [resolve(file), ...rest.filter((a) => a !== file && a !== '--bg')]
     if (flag('bg')) {
       const { loadProject } = await lazy.project()
@@ -253,13 +251,6 @@ const commands = {
   async signin() {
     if (!positional[0]) throw new Error('usage: blindqa signin <ROLE> [--headless]')
     process.exitCode = await runNode(join(SRC, 'signin.mjs'), [positional[0], ...rest.filter((a) => a === '--headless')])
-  },
-
-  async 'shadow-report'() {
-    const { loadProject } = await lazy.project()
-    const { shadowReport } = await import(join(SRC, 'shadow.mjs'))
-    const p = loadProject()
-    console.log(JSON.stringify(shadowReport(positional.map((r) => p.path('runs', r, 'shadow.jsonl'))), null, 2))
   },
 
   async runs() {
@@ -305,14 +296,6 @@ const commands = {
     const { loadProject } = await lazy.project()
     const { stopJob } = await lazy.jobs()
     console.log(stopJob(loadProject(), positional[0]) ? 'stopped' : 'not running')
-  },
-
-  async 'jev-ping'() {
-    try { (await lazy.project()).loadProject() } catch { /* env may come from the shell */ }
-    const { createClient, Choice } = await import(join(SRC, 'jev', 'client.mjs'))
-    const c = createClient()
-    const r = await c.ask({ screen: 'A sign-in form with Email, Password and a "Sign in" button' }, { kind: Choice('What is the user looking at?', { sign_in: 'a sign-in screen', content: 'content', error: 'an error' }) })
-    console.log(`Jev ${r.model}: ${r.answers.kind?.choice} (confidence ${r.answers.kind?.confidence}) in ${Math.round(r.ms)} ms, ${r.usage.input_tokens ?? '?'} input tokens`)
   },
 
   async mcp() { await import(join(ROOT, 'mcp', 'server.mjs')) },

@@ -22,6 +22,7 @@
 
   --animate-grid: grid 20s linear infinite;
   --animate-border-beam: border-beam calc(var(--duration) * 1s) infinite linear;
+  --animate-rainbow: rainbow 4s infinite linear;
 }
 
 @keyframes grid {
@@ -30,6 +31,10 @@
 }
 @keyframes border-beam {
   100% { offset-distance: 100%; }
+}
+@keyframes rainbow {
+  0% { background-position: 0%; }
+  100% { background-position: 200%; }
 }
 
 /* Plain CSS variables some 21st components read directly. */

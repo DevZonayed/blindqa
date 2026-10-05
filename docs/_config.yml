@@ -1,5 +1,5 @@
 title: blindqa
-description: Human-like QA testing for any web app — a Claude Code and Codex plugin, MCP server and CLI that drives a real browser like a person and re-tests only what your code changes touch.
+description: Human-like AI QA testing for any web app — an open-source Claude Code and Codex plugin, MCP server and CLI. Playwright drives a real browser like a person and re-tests only what your code changes touch.
 url: https://devzonayed.github.io
 baseurl: /blindqa
 lang: en
@@ -7,6 +7,11 @@ logo: /assets/social-preview.png
 image: /assets/social-preview.png
 author:
   name: Jonayed Ahamed
+  url: https://github.com/DevZonayed
+social:
+  name: blindqa
+  links:
+    - https://github.com/DevZonayed/blindqa
 github:
   repository_url: https://github.com/DevZonayed/blindqa
 plugins:

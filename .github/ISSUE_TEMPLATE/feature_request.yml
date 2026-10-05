@@ -19,7 +19,7 @@ body:
     id: area
     attributes:
       label: Area
-      options: [Crawl / visibility checks, Journeys, Act mode, Code index / re-test, Browser modes, Sign-in / 2FA, Skills / agent behaviour, Jev, Docs, Other]
+      options: [Crawl / visibility checks, Journeys, Act mode, Code index / re-test, Browser modes, Sign-in / 2FA, Skills / agent behaviour, Docs, Other]
     validations:
       required: true
   - type: checkboxes
@@ -27,5 +27,5 @@ body:
     attributes:
       label: Fits blindqa's principles
       options:
-        - label: It can be done by a script (or Jev) at run time, without the calling agent spending tokens on every run
+        - label: It can be done by a script at run time, without the calling agent spending tokens on every run
         - label: It keeps crawls read-only and keeps .blindqa/ out of git

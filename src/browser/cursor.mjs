@@ -1,5 +1,5 @@
 /**
- * The robot's on-screen cursor. Unlike bench/jev/overlayui.mjs it does NOT follow DOM mouse events:
+ * The robot's on-screen cursor. It does NOT follow DOM mouse events:
  * it only moves when the harness tells it to, so a person moving their own mouse over the window
  * can't drag the dot around. Real mouse movement that isn't the robot's is counted and shows a
  * "hands off" notice, because it can still hover/open things on the page.

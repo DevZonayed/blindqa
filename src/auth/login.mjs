@@ -1,12 +1,10 @@
 /**
  * Sign in as a role like a person, and switch who is signed in inside one window.
  * Works from profile.json alone: password forms (with an optional second factor by authenticator
- * code or emailed code) and email-link sign-in. Field finding falls back to Jev on unusual forms.
+ * code or emailed code) and email-link sign-in. Unusual forms get hints in profile.json (apps.<app>.login).
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { humanFill, humanClick, settle, ctx, log, preparePage, discardSignals } from '../browser/human.mjs'
-import { extractCandidates, digest } from '../browser/extract.mjs'
-import { controlOptions, screenState, Q } from '../jev/questions.mjs'
 import { freshCode } from './totp.mjs'
 import { useMailpit, waitForMail, linksIn } from './mailpit.mjs'
 import { otpSignIn } from './otp.mjs'
@@ -25,8 +23,8 @@ async function onSignIn(page, who) {
   return path !== '/' && new URL(page.url()).pathname.replace(/\/$/, '').endsWith(path.replace(/\/$/, ''))
 }
 
-/** Find a control by the profile's hint, the usual names, or — if neither works — by asking Jev. */
-async function findControl(page, jev, { hint, roles, fallback, goal }) {
+/** Find a control by the profile's hint, then by the usual names. */
+async function findControl(page, { hint, roles, fallback }) {
   const base = page.locator('main, form, body').first()
   if (hint) {
     const byHint = hint.startsWith('css:') ? page.locator(hint.slice(4)) : base.getByLabel(rx(hint)).or(base.getByRole('button', { name: rx(hint) }))
@@ -36,12 +34,7 @@ async function findControl(page, jev, { hint, roles, fallback, goal }) {
     const l = base.getByRole(role, { name: fallback })
     if (await l.count()) return l.first()
   }
-  if (!jev?.enabled) return null
-  const extracted = await extractCandidates(page)
-  const { criteria, byKey } = controlOptions(extracted.candidates)
-  const { answers } = await jev.ask(await screenState(page, extracted, digest), { target: Q.target(goal, criteria) }, { tag: 'login.find' })
-  const c = byKey.get(answers.target?.choice)
-  return c ? page.locator(c.selector).first() : null
+  return null
 }
 
 /** One-time code into the code box(es) of `scope`. */
@@ -82,17 +75,18 @@ async function secondFactor(page, who) {
   await settle(page)
 }
 
-async function passwordSignIn(page, who, jev) {
+async function passwordSignIn(page, who) {
   const form = who.app.login ?? {}
   await page.goto(who.app.baseUrl + (who.loginPath ?? who.app.loginPath ?? '/login'))
   await settle(page)
-  const email = await findControl(page, jev, { hint: form.email, roles: ['textbox'], fallback: /e-?mail|user ?name|login/i, goal: 'type the email address or username to sign in' })
+  const email = await findControl(page, { hint: form.email, roles: ['textbox'], fallback: /e-?mail|user ?name|login/i })
   const password = (await page.locator('input[type=password]').count()) ? page.locator('input[type=password]').first()
-    : await findControl(page, jev, { hint: form.password, roles: ['textbox'], fallback: /password/i, goal: 'type the password' })
+    : await findControl(page, { hint: form.password, roles: ['textbox'], fallback: /password/i })
   if (!email || !password) throw new Error(`could not find the sign-in fields at ${page.url()} — set apps.<app>.login in profile.json`)
   await humanFill(page, email, who.email, 'Email')
   await humanFill(page, password, who.password, 'Password')
-  const submit = await findControl(page, jev, { hint: form.submit, roles: ['button'], fallback: /^(sign in|log ?in|login|continue|submit)$/i, goal: 'submit the sign-in form' })
+  const submit = await findControl(page, { hint: form.submit, roles: ['button'], fallback: /^(sign in|log ?in|login|continue|submit)$/i })
+  if (!submit) throw new Error(`could not find the sign-in button at ${page.url()} — set apps.<app>.login.submit in profile.json`)
   const before = page.url()
   await humanClick(page, submit, 'Sign in')
   await page.waitForFunction((u) => !document.querySelector('input[type=password]') || location.href !== u, before, { timeout: 15000 }).catch(() => {})
@@ -118,7 +112,7 @@ async function emailLinkSignIn(page, who) {
  * Make the session's page signed in as `roleName`. Reuses the saved session (cookies swapped in place)
  * while it is valid; otherwise signs in like a person and saves the session.
  */
-export async function openAs(session, project, roleName, { jev = null } = {}) {
+export async function openAs(session, project, roleName) {
   const who = project.role(roleName)
   const { context, page } = session
   if (!page.__bqPrepared) { await preparePage(page); page.__bqPrepared = true }
@@ -156,7 +150,7 @@ export async function openAs(session, project, roleName, { jev = null } = {}) {
   else if (who.login === 'otp') {
     const otp = { ...(project.profile.otp ?? {}), ...(project.credentials.otp ?? {}) }
     await otpSignIn(page, who, { otp, saveSecret: (patch) => { project.saveCredential(who, patch); Object.assign(who, patch) } })
-  } else await passwordSignIn(page, who, jev)
+  } else await passwordSignIn(page, who)
   if (await onSignIn(page, who)) throw new Error(`${who.key} is still on the sign-in page after signing in (${page.url()})`)
   await context.storageState({ path: file })
   discardSignals()

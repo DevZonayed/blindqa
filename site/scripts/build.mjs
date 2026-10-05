@@ -21,21 +21,61 @@ await build({ root, logLevel: 'warn', build: { ssr: 'src/entry-server.tsx', outD
 const { render, faq } = await import(pathToFileURL(join(root, 'dist/server/entry-server.js')).href)
 const appHtml = render()
 
+const SITE = 'https://devzonayed.github.io/blindqa/'
+const REPO = 'https://github.com/DevZonayed/blindqa'
+const version = JSON.parse(readFileSync(join(root, '..', 'package.json'), 'utf8')).version
+const author = { '@type': 'Person', '@id': `${SITE}#author`, name: 'Jonayed Ahamed', url: 'https://github.com/DevZonayed' }
 const ld = [
   {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'blindqa',
-    description: 'Human-like QA testing for any web app — a Claude Code and Codex plugin, MCP server and CLI that drives a real browser like a person and re-tests only what your code changes touch.',
-    applicationCategory: 'DeveloperApplication',
-    operatingSystem: 'macOS, Linux, Windows',
-    url: 'https://devzonayed.github.io/blindqa/',
-    downloadUrl: 'https://github.com/DevZonayed/blindqa',
-    softwareVersion: JSON.parse(readFileSync(join(root, '..', 'package.json'), 'utf8')).version,
-    license: 'https://opensource.org/licenses/MIT',
-    author: { '@type': 'Person', name: 'Jonayed Ahamed', url: 'https://github.com/DevZonayed' },
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    image: 'https://devzonayed.github.io/blindqa/assets/social-preview.png',
+    '@graph': [
+      { '@type': 'WebSite', '@id': `${SITE}#website`, url: SITE, name: 'blindqa', inLanguage: 'en', publisher: { '@id': `${SITE}#author` } },
+      author,
+      {
+        '@type': 'SoftwareApplication',
+        '@id': `${SITE}#app`,
+        name: 'blindqa',
+        alternateName: 'blindqa QA plugin',
+        description: 'Human-like QA testing for any web app: an open-source Claude Code and Codex plugin, MCP server and CLI. Playwright drives a real browser like a person, finds visual, accessibility, permission and workflow bugs, and re-tests only what your code changes touch, with no AI model in the test loop.',
+        applicationCategory: 'DeveloperApplication',
+        applicationSubCategory: 'Software testing',
+        operatingSystem: 'macOS, Linux, Windows',
+        softwareRequirements: 'Node.js 20 or later, git',
+        url: SITE,
+        downloadUrl: REPO,
+        installUrl: `${SITE}INSTALL.html`,
+        softwareVersion: version,
+        license: 'https://opensource.org/licenses/MIT',
+        isAccessibleForFree: true,
+        author: { '@id': `${SITE}#author` },
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+        image: `${SITE}assets/social-preview.png`,
+        screenshot: `${SITE}assets/social-preview.png`,
+        sameAs: [REPO],
+        keywords: 'AI QA testing, Claude Code plugin, Codex plugin, MCP server, Playwright, exploratory testing, end-to-end testing, accessibility testing, regression testing, test impact analysis',
+        featureList: [
+          'Human-like crawls of every screen for every role, on desktop and phone width',
+          'Visibility checks: covered, clipped, transparent and off-screen controls, scroll locks',
+          'Accessibility checks: unlabeled controls, indistinct button names, low contrast, tiny tap targets',
+          'Read-only crawls that block every write request at the network level',
+          'Scripted journeys and act mode for real workflows',
+          'Code index and change impact to re-test only what changed (NEW / FIXED / STILL)',
+          'Browser modes: local, headless, CDP, n.eko and Orca',
+          'Never-push guard for QA data',
+        ],
+      },
+      {
+        '@type': 'SoftwareSourceCode',
+        '@id': `${SITE}#code`,
+        name: 'blindqa',
+        codeRepository: REPO,
+        programmingLanguage: 'JavaScript',
+        runtimePlatform: 'Node.js',
+        license: 'https://opensource.org/licenses/MIT',
+        author: { '@id': `${SITE}#author` },
+        targetProduct: { '@id': `${SITE}#app` },
+      },
+    ],
   },
   {
     '@context': 'https://schema.org',

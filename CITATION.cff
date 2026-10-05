@@ -9,8 +9,8 @@ authors:
 repository-code: "https://github.com/DevZonayed/blindqa"
 url: "https://devzonayed.github.io/blindqa/"
 license: MIT
-version: 0.2.0
-date-released: "2026-10-05"
+version: 0.3.0
+date-released: 2026-10-05
 keywords:
   - qa
   - test automation

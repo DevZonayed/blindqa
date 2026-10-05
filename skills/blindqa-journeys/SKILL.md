@@ -28,8 +28,10 @@ await s.close()
 - Reach screens by clicking from where a person starts (sidebar → tab → row ⋯ menu), never by typing URLs —
   except as a deliberate permission check.
 - Locate by role and visible name (`getByRole`, `getByLabel`), not CSS classes or test ids.
-- Give each `humanClick` the label a tester would say ("Start a new invoice"): shadow mode asks Jev to find
-  the control from it, and its accuracy tells you when plain-language steps are reliable.
+- Give each `humanClick` the label a tester would say ("Start a new invoice"): it appears in the trace and
+  in findings, so a failed step reads like a bug report.
+- To judge an outcome without writing your own rules, use `blindqa.judge`: `screenSignals(page)` before
+  and after a step, then `actionOutcome(before, after, http)` or `submitOutcome(...)`.
 - Check outcomes the way the user would see them (the row, the total, the toast), and report problems with
   `finding(page, kind, severity, detail)`. Prefer one journey per workflow, split into phases that can be
   re-run from the middle.
@@ -41,7 +43,6 @@ page route it renders. Look up the screen's file there, then read only that file
 
 ## Run and repair
 - `blindqa_journey { file: ".blindqa/journeys/j01.mjs" }` (background job), then `blindqa_job` once.
-- `shadow: true` also measures Jev against your script without changing what the script does.
 - A step that fails: open the step's screenshot from `blindqa_findings`, compare the label with the
   index facts for that file (a renamed button shows as `labels +1/-1` in `blindqa_changes`), fix the
   locator, re-run from that phase.

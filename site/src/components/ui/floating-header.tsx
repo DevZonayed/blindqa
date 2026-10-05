@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { MenuIcon, XIcon } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
-import { GithubIcon } from '@/components/ui/github-icon'
+import { StarOnGithub } from '@/components/ui/star-on-github'
 import { Logo } from '@/components/ui/logo'
 import { cn, REPO } from '@/lib/utils'
 
@@ -46,9 +46,7 @@ export function FloatingHeader() {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <a href={REPO} className={buttonVariants({ variant: 'outline', size: 'sm', className: 'hidden sm:inline-flex' })}>
-            <GithubIcon className="size-4" /> GitHub
-          </a>
+          <StarOnGithub size="sm" className="hidden sm:inline-flex" />
           <a href="#install" className={buttonVariants({ variant: 'primary', size: 'sm' })}>Install</a>
           <button
             className={buttonVariants({ variant: 'outline', size: 'icon', className: 'lg:hidden' })}
@@ -63,7 +61,7 @@ export function FloatingHeader() {
       </nav>
       {open && (
         <div id="mobile-menu" className="grid gap-1 border-t border-border p-2 lg:hidden">
-          {[...links, { label: 'GitHub', href: REPO }].map((l) => (
+          {[...links, { label: 'Star on GitHub', href: REPO }].map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)} className={buttonVariants({ variant: 'ghost', className: 'justify-start' })}>{l.label}</a>
           ))}
         </div>

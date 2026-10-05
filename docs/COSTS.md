@@ -1,6 +1,6 @@
 ---
-title: "Costs — who does what"
-description: "How blindqa keeps AI agent token use low: scripts do the repeatable work, Jev makes small calls, the agent only sets up and verifies."
+title: "AI token costs — scripts test, your agent verifies"
+description: "Why blindqa runs cost zero AI tokens: scripts do every check and judgment call, and your coding agent only sets up, decides what to run and verifies."
 ---
 
 # Who does what, and what it costs
@@ -8,7 +8,7 @@ description: "How blindqa keeps AI agent token use low: scripts do the repeatabl
 | Work | Done by | Cost |
 |---|---|---|
 | Driving the browser, every visibility/scroll/contrast check, write blocking, permission probes, code index, change impact, re-test plan, run comparison | scripts | machine time only |
-| Small judgment calls per screen (what kind of screen, raw codes on screen, unclear names, which control a step means) | Jev (optional) | ~$0.00002 per decision, cached across runs |
+| Judgment calls per screen and per action (error or blank screen, raw ids and codes on screen, unclear control names, what a button will do, what a field wants, whether a submit worked) | scripts (`src/judge.mjs`) | machine time only |
 | Setting up a project, writing journeys, verifying new high-severity findings, writing reports | the coding agent (Claude Code, Codex, …) | model tokens — the only real cost |
 
 ## What costs tokens once, and what doesn't repeat
