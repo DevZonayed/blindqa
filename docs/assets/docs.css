@@ -33,7 +33,7 @@ a:hover { text-decoration: underline; }
 
 .doc { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 3rem; padding: 3rem 0 4rem; }
 .install { position: sticky; top: 80px; align-self: start; border: 1px solid var(--border); background: var(--surface); border-radius: 16px; padding: 1.1rem; font-size: 13px; color: var(--muted); }
-.install pre { margin: .5rem 0; font-size: 11.5px; }
+.install pre { margin: .5rem 0; font-size: 11.5px; white-space: pre-wrap; word-break: break-all; }
 .eyebrow { margin: 0; font: 500 11px var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--primary); }
 
 .prose { min-width: 0; color: #d6deee; }
