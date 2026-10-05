@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use blindqa in your work, please cite it like this."
+title: "blindqa: human-like QA testing for any web app"
+abstract: "A Claude Code and Codex plugin, MCP server and CLI that drives a web app in a real browser like a person, finds visual, accessibility, permission and workflow bugs, and re-tests only what code changes touch."
+type: software
+authors:
+  - given-names: Jonayed
+    family-names: Ahamed
+repository-code: "https://github.com/DevZonayed/blindqa"
+url: "https://devzonayed.github.io/blindqa/"
+license: MIT
+version: 0.2.0
+date-released: "2026-10-05"
+keywords:
+  - qa
+  - test automation
+  - end-to-end testing
+  - accessibility testing
+  - playwright
+  - claude code
+  - codex
+  - mcp

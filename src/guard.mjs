@@ -8,7 +8,7 @@
  * this up leaves nothing to commit. Repos blindqa clones for testing also get their push URL disabled.
  */
 import { execFileSync } from 'node:child_process'
-import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative } from 'node:path'
 import { ensureLayout } from './layout.mjs'
 
@@ -33,9 +33,11 @@ export function gitInfo(root) {
   }
 }
 
-/** The .blindqa/ path relative to the repo top, as git prints paths ("" prefix when at the top). */
+/** The .blindqa/ path relative to the repo top, as git prints paths. Git reports real paths, so compare real
+ * paths too (on macOS /var and /tmp are symlinks into /private). */
+const real = (p) => { try { return realpathSync(p) } catch { return p } }
 const relDir = (info, root) => {
-  const r = relative(info.top, root).split('\\').join('/')
+  const r = relative(real(info.top), real(root)).split('\\').join('/')
   return r ? `${r}/.blindqa` : '.blindqa'
 }
 

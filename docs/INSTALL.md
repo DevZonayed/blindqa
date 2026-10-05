@@ -1,3 +1,8 @@
+---
+title: "Install blindqa for Claude Code, Codex or the CLI"
+description: "How to install the blindqa QA plugin in Claude Code and Codex, use it as an MCP server or CLI, and set it up on a new machine."
+---
+
 # Install
 
 Needs Node.js 20 or newer and git. Chromium for Playwright is installed on first use (`blindqa setup`, ~150 MB)

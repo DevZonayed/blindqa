@@ -1,0 +1,38 @@
+name: False finding
+description: blindqa reported a problem that a real person would not have (or missed one they would)
+labels: [false-finding]
+body:
+  - type: markdown
+    attributes:
+      value: These are bugs in the robot, and the most useful reports we get. A screenshot of what a person actually sees helps most.
+  - type: dropdown
+    id: direction
+    attributes:
+      label: Which way was it wrong?
+      options:
+        - Reported a problem that isn't real (false positive)
+        - Missed a problem a person would hit (false negative)
+    validations:
+      required: true
+  - type: input
+    id: kind
+    attributes:
+      label: Finding kind and severity
+      placeholder: "e.g. not-humanly-visible / high"
+  - type: textarea
+    id: detail
+    attributes:
+      label: The finding text and what a person actually sees
+    validations:
+      required: true
+  - type: textarea
+    id: markup
+    attributes:
+      label: Minimal HTML/CSS that reproduces it (if you can)
+      description: A tiny page is enough — e.g. the element, its parent's overflow/opacity, anything covering it.
+      render: html
+  - type: textarea
+    id: shots
+    attributes:
+      label: Screenshots
+      description: blindqa's screenshot (from runs/<id>/shots/) and one of what a person sees.

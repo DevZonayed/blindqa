@@ -1,3 +1,8 @@
+---
+title: "The .blindqa folder and the never-push guard"
+description: "Where blindqa keeps QA data, and the three local layers that stop it from ever being committed or pushed to a git remote."
+---
+
 # The .blindqa/ folder — and why it never reaches a remote
 
 Everything blindqa knows about an app lives in one folder at the root of the app's repo (or the folder you

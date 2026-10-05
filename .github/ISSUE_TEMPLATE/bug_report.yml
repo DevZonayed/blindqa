@@ -1,0 +1,57 @@
+name: Bug report
+description: blindqa crashed, a command failed, or a run did something wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Remove passwords, tokens, private URLs and customer data from anything you paste.
+        Security problems go to the [private advisory form](https://github.com/DevZonayed/blindqa/security/advisories/new) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. blindqa init .
+        2. blindqa crawl --role ADMIN --headless
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where you ran it
+      options: [Claude Code plugin, Codex plugin, CLI, Other MCP client]
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser mode (`blindqa machine show`)
+      options: [local, headless, cdp, neko, orca, not sure]
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`blindqa doctor` output"
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output or the run's summary.md
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "blindqa 0.2.0 · Node 22.x · macOS 15 / Ubuntu 24.04 / Windows 11 · Claude Code 2.x / Codex 0.x"
+    validations:
+      required: true

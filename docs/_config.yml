@@ -1,0 +1,28 @@
+title: blindqa
+description: Human-like QA testing for any web app — a Claude Code and Codex plugin, MCP server and CLI that drives a real browser like a person and re-tests only what your code changes touch.
+url: https://devzonayed.github.io
+baseurl: /blindqa
+lang: en
+theme: jekyll-theme-cayman
+logo: /assets/social-preview.png
+image: /assets/social-preview.png
+author:
+  name: Jonayed Ahamed
+github:
+  repository_url: https://github.com/DevZonayed/blindqa
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-titles-from-headings
+relative_links:
+  enabled: true
+  collections: false
+titles_from_headings:
+  enabled: true
+  strip_title: false
+defaults:
+  - scope: { path: "" }
+    values:
+      image: /assets/social-preview.png

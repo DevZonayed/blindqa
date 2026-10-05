@@ -1,0 +1,27 @@
+name: Browser / machine setup
+description: A browser mode doesn't work on your machine, or you want blindqa to support another browser setup
+labels: [browser-mode]
+body:
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options: [local, headless, cdp, neko, orca, new kind of setup]
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Your setup
+      description: OS, how the browser runs (Docker image and tag, remote service, agent workspace app and version), how blindqa reaches it.
+    validations:
+      required: true
+  - type: textarea
+    id: detect
+    attributes:
+      label: "`blindqa machine detect` and `blindqa doctor` output"
+      render: text
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened

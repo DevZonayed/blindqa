@@ -18,6 +18,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "test": "node --test test/*.test.mjs",
     "mcp": "node mcp/server.mjs",
     "postinstall": "node bin/blindqa.mjs setup --quiet || true"
   },

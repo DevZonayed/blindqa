@@ -1,3 +1,8 @@
+---
+title: "Costs — who does what"
+description: "How blindqa keeps AI agent token use low: scripts do the repeatable work, Jev makes small calls, the agent only sets up and verifies."
+---
+
 # Who does what, and what it costs
 
 | Work | Done by | Cost |

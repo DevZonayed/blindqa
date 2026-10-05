@@ -1,0 +1,31 @@
+name: Feature request
+description: A new check, command, framework for the code index, or a better workflow
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like blindqa to do
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Crawl / visibility checks, Journeys, Act mode, Code index / re-test, Browser modes, Sign-in / 2FA, Skills / agent behaviour, Jev, Docs, Other]
+    validations:
+      required: true
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Fits blindqa's principles
+      options:
+        - label: It can be done by a script (or Jev) at run time, without the calling agent spending tokens on every run
+        - label: It keeps crawls read-only and keeps .blindqa/ out of git

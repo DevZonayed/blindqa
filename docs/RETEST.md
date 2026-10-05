@@ -1,3 +1,8 @@
+---
+title: "Re-test only what changed"
+description: "How blindqa indexes your code, maps git changes to affected pages and re-runs only the crawls and journeys that cover them."
+---
+
 # Re-test only what changed
 
 The first full test of an app is the expensive part (setting up, writing journeys). After that, blindqa
