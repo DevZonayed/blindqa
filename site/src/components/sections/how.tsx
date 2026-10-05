@@ -1,6 +1,6 @@
 // "How it works" — who decides what, and the three ways to test. Card shell shared with the bento.
 import type { ReactNode } from 'react'
-import { Cpu, Sparkles, Bot, ScanEye, Workflow, MousePointer2 } from 'lucide-react'
+import { Cpu, Scale, Bot, ScanEye, Workflow, MousePointer2 } from 'lucide-react'
 import { SectionHeading } from '@/components/sections/section-heading'
 import { cn } from '@/lib/utils'
 
@@ -27,17 +27,18 @@ export function How() {
   return (
     <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-20 md:px-8 md:py-24">
       <SectionHeading eyebrow="How it works" title={<>Scripts do the work. <span className="text-muted-foreground">Your agent does the thinking.</span></>}>
-        Every repeatable decision is made by code, so re-runs are free. Your coding agent is the expensive part — it
-        only sets things up, writes journeys and verifies what’s new.
+        No AI model in the test loop: every check and every judgment call is code, so runs cost zero tokens and the
+        same screen always gets the same verdict. Your coding agent only sets things up, writes journeys and verifies
+        what’s new.
       </SectionHeading>
       <div className="grid gap-4 md:grid-cols-3">
-        <Decider icon={<Cpu className="size-5" />} who="Scripts" cost="machine time">
+        <Decider icon={<Cpu className="size-5" />} who="Scripts that drive" cost="machine time">
           Drive the browser, check visibility, scrolling, contrast and size, block writes, catch console and HTTP
           errors, index your code, work out what a change touches, compare runs.
         </Decider>
-        <Decider icon={<Sparkles className="size-5" />} who="Jev (optional)" cost="~$0.00002 each">
-          Small person-like judgments: what kind of screen this is, whether raw codes leak to users, whether a button’s
-          name is clear, which control a step means. Cached across runs.
+        <Decider icon={<Scale className="size-5" />} who="Scripts that judge" cost="machine time">
+          The calls a tester makes: is this an error or blank screen, do raw ids leak to users, can a screen reader
+          tell these buttons apart, what will this control do, did that submit work.
         </Decider>
         <Decider icon={<Bot className="size-5" />} who="Your coding agent" cost="tokens — only here" highlight>
           Claude Code, Codex or any MCP client: sets up the project, writes journeys, verifies new high-severity

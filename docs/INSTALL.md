@@ -1,6 +1,6 @@
 ---
-title: "Install blindqa for Claude Code, Codex or the CLI"
-description: "How to install the blindqa QA plugin in Claude Code and Codex, use it as an MCP server or CLI, and set it up on a new machine."
+title: "Install blindqa — QA testing plugin for Claude Code and Codex, MCP server and CLI"
+description: "Install the blindqa AI QA testing plugin in Claude Code or Codex with two commands, or use it as an MCP server or CLI. Node.js 20+ and git; no API keys."
 ---
 
 # Install
@@ -13,7 +13,6 @@ unless the machine uses a `cdp`, `neko` or `orca` browser.
 /plugin marketplace add DevZonayed/blindqa       # or a local clone: /plugin marketplace add /path/to/blindqa
 /plugin install blindqa@blindqa
 ```
-Claude Code asks for the optional Jev (TypeSafe) key and stores it in its credential store.
 You get: the `blindqa` MCP server (all `blindqa_*` tools), six skills (`blindqa`, `blindqa-setup`,
 `blindqa-run`, `blindqa-journeys`, `blindqa-retest`, `blindqa-triage`) and the `blindqa-verifier` agent
 (Sonnet, read-only, one finding at a time — the skills only use it after you agree).
@@ -31,7 +30,7 @@ to `~/.claude/settings.json` (present in Claude Code 2.1.289):
 codex plugin marketplace add DevZonayed/blindqa  # or a local clone path
 codex plugin add blindqa@blindqa
 ```
-Put the optional Jev key in `~/.blindqa/.env` (`TYPESAFE_API_KEY=…`). Codex gets the MCP server and the six
+Codex gets the MCP server and the six
 skills (Codex has no plugin agents; the triage skill works without one).
 
 ## Any other agent or MCP client

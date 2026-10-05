@@ -48,9 +48,7 @@ Local/headless need Chromium for Playwright once: `blindqa_setup`.
 4. `.blindqa/credentials.json`: `{ "roles": { "ADMIN": { "email": "…", "password": "…", "totpSecret"?: "…", "mfaByEmail"?: true } } }`.
    Seed users through the app's own sign-up/invite flow or seed script if there are no demo accounts.
    Never print passwords back to the user.
-5. Optional Jev key: plugin setting, or `TYPESAFE_API_KEY=…` in `~/.blindqa/.env`. Without it every run
-   still works with fixed rules only.
-6. `blindqa_doctor` until every line is OK (Jev key is optional).
+5. `blindqa_doctor` until every line is OK.
 
 ## 3. Baseline (once per app)
 Crawl every role once (`blindqa-run`), then `blindqa_index`. From then on, `blindqa-retest` re-tests only

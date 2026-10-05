@@ -7,7 +7,7 @@ description: Decide which blindqa findings are real bugs, environment-only, or t
 
 ## Order of work
 1. `blindqa_summary` for the run (or the re-test report). List what you will verify: every NEW
-   high/critical finding, then `needsReview` ones, then `blindqa_escalations` (Jev unsure). Say the list.
+   high/critical finding, then `needsReview` ones, then `blindqa_unsure` (act-mode outcomes the scripts couldn't settle). Say the list.
 2. Verify them one by one:
    - open the screenshot (`blindqa_findings { run, severity }` gives paths),
    - reproduce it in the running app if it isn't obvious from the screenshot,

@@ -12,16 +12,15 @@ pointed it at). `blindqa layout` prints this list.
 |---|---|
 | `README.md` | what the folder is (regenerated) |
 | `.gitignore` | `*` — git ignores everything in here, this file included |
-| `profile.json` | apps (`baseUrl`, `loginPath`, `nav`), roles, start commands, mail catcher, safety rules, Jev settings |
+| `profile.json` | apps (`baseUrl`, `loginPath`, `nav`), roles, start commands, mail catcher, safety rules |
 | `credentials.json` | sign-in per role (owner-only file permissions) |
-| `.env` | optional keys, e.g. `TYPESAFE_API_KEY` |
+| `.env` | optional environment values for runs, e.g. `MAILPIT_URL` |
 | `journeys/` | journey scripts written for this app |
 | `index/` | code index: `state.json` (commit, branch, per-file hash), `facts.json`, `graph.json` |
-| `runs/<id>/` | one run: `summary.md`, `findings.jsonl`, `map.json` (crawls), `journey.json` (journeys), `shots/`, `trace.log`, Jev logs |
+| `runs/<id>/` | one run: `summary.md`, `findings.jsonl`, `map.json` (crawls), `journey.json` (journeys), `shots/`, `trace.log`, `effects.jsonl` (act mode) |
 | `jobs/` | background jobs |
 | `reports/` | re-test reports, the findings register (`FINDINGS.md`) |
 | `sessions/` | saved sign-ins per role |
-| `cache/` | Jev answers |
 | `browser-profile/` | the local window's browser profile |
 
 Machine-wide (not per app): `~/.blindqa/machine.json` (browser mode), `~/.blindqa/.env` (keys),

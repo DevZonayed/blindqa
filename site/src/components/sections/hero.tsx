@@ -22,7 +22,7 @@ export function Hero() {
             href={`${REPO}/releases`}
             className="group mx-auto flex w-fit items-center rounded-3xl border-2 border-white/5 bg-gradient-to-tr from-zinc-300/5 via-gray-400/5 to-transparent px-5 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <span className="mr-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">v0.2</span>
+            <span className="mr-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">v{__BLINDQA_VERSION__.split('.').slice(0, 2).join('.')}</span>
             Claude Code &amp; Codex plugin · MCP server · CLI
             <ChevronRight className="ml-2 inline size-4 duration-300 group-hover:translate-x-1" />
           </a>
@@ -33,9 +33,9 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg">
-            blindqa drives your web app in a real browser — scrolling, clicking, signing in as every role — and
-            reports the bugs your users would actually hit. After the first run, it re-tests only what your code
-            changes touch.
+            An open-source AI QA testing plugin for Claude Code and Codex. blindqa drives your web app in a real
+            browser with Playwright — scrolling, clicking, signing in as every role — and reports the bugs your users
+            would actually hit. After the first run, it re-tests only what your code changes touch.
           </p>
 
           <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">

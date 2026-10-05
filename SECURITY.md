@@ -22,7 +22,6 @@ blindqa handles credentials and drives browsers, so these matter most:
 - **Browser attach modes** — `cdp`/`neko`/`orca` touching a person's own browser profile or cookies
   outside the isolated context, or the n.eko template exposing the DevTools port beyond localhost.
 - **Read-only crawls changing data** — a write getting past the crawl's network write-blocker.
-- **The Jev key** — sent anywhere other than the official TypeSafe host.
 - **Command injection** through project files (`profile.json`, journey paths, git refs) passed to shell or git.
 
 Out of scope: vulnerabilities in the apps you test with blindqa (report those to their owners), and

@@ -4,9 +4,10 @@
  *   blindqa act --role R [--only "Purchase orders|Retailers"] [--max-actions 200] [--headless] [--run id]
  *
  * For every screen in the role's navigation:
- *   - Jev says what each control will do (open a form, change the view, save at once, delete, …)
+ *   - each control's likely effect (open a form, change the view, save at once, delete, …) comes from
+ *     its role, name and attributes — no model involved (src/judge.mjs)
  *   - forms are opened, filled with valid values for each field's kind, submitted (confirmations
- *     accepted) and judged: accepted / says what's missing / silently nothing / crashed …
+ *     accepted) and judged from what changed: accepted / says what's missing / silently nothing / crashed …
  *   - menus are opened and each item is tried; tabs and filters are switched
  *   - things that save at once are done; destructive or irreversible actions only on records this
  *     run created (their names carry the tag), never on seeded data
@@ -17,9 +18,8 @@ import { loadProject } from './project.mjs'
 import { openSession, sessionOptions } from './browser/session.mjs'
 import { openAs, persistSession } from './auth/login.mjs'
 import { ctx, humanClick, humanFill, settle, flushSignals, finding, log, useRunDir, watch, VISIBLE, RUN_DIR } from './browser/human.mjs'
-import { extractCandidates, digest } from './browser/extract.mjs'
-import { engineFor, certainty } from './jev/engine.mjs'
-import { Q } from './jev/questions.mjs'
+import { extractCandidates } from './browser/extract.mjs'
+import { controlEffect, isIrreversible, fieldKind, screenSignals, submitOutcome, actionOutcome } from './judge.mjs'
 import { writeSummary } from './summary.mjs'
 import { inboxBefore, waitForCode, typeCode } from './auth/otp.mjs'
 
@@ -32,8 +32,6 @@ const who = project.role(ROLE)
 const runId = arg('run', `act-${ROLE.toLowerCase()}-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`)
 useRunDir(project.runDir(runId))
 watch.origins = [...new Set([...Object.values(project.profile.apps).map((a) => new URL(a.baseUrl).origin), ...(project.profile.api?.origins ?? []).map((o) => new URL(o).origin)])]
-const jev = engineFor(project, RUN_DIR)
-if (!jev.enabled) throw new Error('act mode needs Jev (TYPESAFE_API_KEY)')
 
 const OTP = { ...(project.profile.otp ?? {}), ...(project.credentials.otp ?? {}) }
 const STAMP = new Date().toISOString().slice(5, 16).replace(/[-:T]/g, '')
@@ -113,11 +111,11 @@ async function toastText(page) {
 }
 async function apiErrors(page, sinceIdx) { return (page.__bqResponses ?? []).slice(sinceIdx).filter((r) => r.status >= 400) }
 
-async function judge(page, before, kind, action, extra = {}) {
-  const after = await digest(page, { maxChars: 1500 })
-  const q = kind === 'submit' ? { outcome: Q.submitOutcome() } : { outcome: Q.actionOutcome() }
-  const { answers } = await jev.ask({ action, screen_before: before, screen_after: after, ...extra }, q, { tag: `act.${kind}` })
-  return { outcome: answers.outcome?.choice ?? 'unknown', certainty: Number(certainty(answers.outcome).toFixed(2)), after }
+/** What happened since `before` (a screenSignals() snapshot), from the screen and the network. */
+async function judge(page, before, kind, { scopeSel = null, mark = 0, name = '' } = {}) {
+  const after = await screenSignals(page, scopeSel)
+  const http = (page.__bqResponses ?? []).slice(mark)
+  return { ...(kind === 'submit' ? submitOutcome(before, after, http) : actionOutcome(before, after, http, { name })), after }
 }
 
 /* ---------------------------------------------------------------- forms */
@@ -127,12 +125,7 @@ async function fillForm(page, scopeSel) {
   if (process.env.BLINDQA_DEBUG) log(`fill: ${fields.length} field(s): ${fields.map((c) => `${c.role}"${c.name}"=${c.value || ''}`).join(' | ')} (scope ok: ${!!(await page.locator(scopeSel).count())}, overlay ${ex.overlayRole})`)
   const filled = []
   const text = fields.filter((c) => /^(textbox|spinbutton|date)$/.test(c.role) && !c.value)
-  const kinds = {}
-  if (text.length) {
-    const qs = Object.fromEntries(text.map((c) => [`f${c.index}`, Q.fieldType(c)]))
-    const { answers } = await jev.ask({ form: (await digest(page, { maxChars: 900 })) }, qs, { tag: 'act.fieldType' })
-    for (const c of text) kinds[c.index] = answers[`f${c.index}`]?.choice ?? 'other'
-  }
+  const kinds = Object.fromEntries(text.map((c) => [c.index, fieldKind(c)]))
   for (const c of fields) {
     const el = locate(page, c)
     try {
@@ -202,13 +195,14 @@ async function fillForm(page, scopeSel) {
 /** Fill and submit the form in `scopeSel`, accept a confirmation, judge the result. */
 async function submitForm(page, scopeSel, label, where, { button = null, step = 1 } = {}) {
   const filled = await fillForm(page, scopeSel)
-  const before = await digest(page, { maxChars: 1500 })
+  const before = await screenSignals(page, scopeSel)
   const scope = page.locator(scopeSel).last()
   const btn = button ? scope.getByRole('button', { name: button, exact: true }).last() : scope.getByRole('button', { name: /^(save|create|add|submit|send|invite|continue|next|confirm|apply|done|record|place|raise|onboard|request|post|update)\b/i }).last()
   if (!(await btn.count())) { record({ screen: where, control: label, kind: 'form', outcome: 'no submit button', filled }); return null }
   const btnName = (await btn.innerText().catch(() => 'submit')).trim()
   const mark = page.__bqResponses.length
-  await humanClick(page, btn, `${btnName} (${label})`)
+  // a button a person can't reach is already a finding; judging a press that never happened would add a false one
+  if (!(await humanClick(page, btn, `${btnName} (${label})`))) { record({ screen: where, control: label, kind: 'form', submit: btnName, filled, outcome: `could not press ${btnName}` }); return null }
   await page.waitForTimeout(800)
   // a confirmation is part of the flow here: accept it
   const confirm = page.locator('[role=alertdialog]:visible, [role=dialog]:visible').filter({ hasText: /\?/ }).last()
@@ -221,17 +215,16 @@ async function submitForm(page, scopeSel, label, where, { button = null, step = 
   await settle(page)
   const toast = await toastText(page)
   const errs = await apiErrors(page, mark)
-  const j = await judge(page, before, 'submit', `${btnName} on "${label}"`, { values_entered: filled.slice(0, 20), toast })
-  const e = { screen: where, control: label, kind: 'form', submit: btnName, confirmed, filled, toast, http: errs.map((r) => `${r.method} ${r.path} → ${r.status}`), outcome: j.outcome, certainty: j.certainty }
+  const j = await judge(page, before, 'submit', { scopeSel, mark })
+  const e = { screen: where, control: label, kind: 'form', submit: btnName, confirmed, filled, toast, http: errs.map((r) => `${r.method} ${r.path} → ${r.status}`), outcome: j.outcome, sure: j.sure, why: j.why }
   e.shot = `shots/act-${String(effects.length + 1).padStart(3, '0')}.png`
   await page.screenshot({ path: RUN_DIR + e.shot }).catch(() => {})
   record(e)
-  const sure = j.certainty >= 0.7
   if (errs.some((r) => r.status >= 500)) await finding(page, 'server-error-on-submit', 'high', `${where}: "${label}" → ${btnName} gave a server error (${e.http.join('; ')})`, { noShot: true })
-  else if (sure && /^(silently_nothing|error_behind_dialog|crashed)$/.test(j.outcome)) await finding(page, `submit-${j.outcome.replace(/_/g, '-')}`, j.outcome === 'crashed' ? 'high' : 'medium', `${where}: filled "${label}" with valid values and pressed ${btnName} — ${j.outcome.replace(/_/g, ' ')}${errs.length ? ` (${e.http.join('; ')})` : ''}`, { noShot: true })
-  else if (sure && j.outcome === 'unclear_error') await finding(page, 'unclear-error', 'medium', `${where}: "${label}" → ${btnName}: the error shown is technical or vague${toast ? ` ("${toast.slice(0, 120)}")` : ''}`, { noShot: true })
-  else if (!sure) jev.escalate({ screen: where, control: label, question: 'submitOutcome', answer: j.outcome, certainty: j.certainty })
-  log(`form "${label}" → ${j.outcome} (${j.certainty})${toast ? ` toast: ${toast.slice(0, 80)}` : ''}${errs.length ? ` http: ${e.http.join('; ')}` : ''}`)
+  else if (j.sure && /^(silently_nothing|failed_silently|error_behind_dialog|crashed)$/.test(j.outcome)) await finding(page, `submit-${j.outcome.replace(/_/g, '-')}`, j.outcome === 'crashed' ? 'high' : 'medium', `${where}: filled "${label}" with valid values and pressed ${btnName} — ${j.outcome.replace(/_/g, ' ')}: ${j.why}`, { noShot: true })
+  else if (j.sure && j.outcome === 'unclear_error') await finding(page, 'unclear-error', 'medium', `${where}: "${label}" → ${btnName}: the error shown is technical or vague (${j.why.slice(0, 160)})`, { noShot: true })
+  else if (j.sure && j.outcome === 'signed_out') await finding(page, 'unexpected-sign-out', 'high', `${where}: submitting "${label}" signed the user out`, { noShot: true })
+  log(`form "${label}" → ${j.outcome}${j.sure ? '' : ' (unsure)'}: ${j.why.slice(0, 100)}${errs.length ? ` http: ${e.http.join('; ')}` : ''}`)
   // a multi-step form: fill and continue the next step, up to 6 steps
   if (j.outcome === 'moved_on' && step < 6 && actionsDone.n < MAX_ACTIONS) {
     const next = page.locator(overlaySel).last()
@@ -298,11 +291,8 @@ async function actOnScreen(page, where, navNames) {
       && (c.inMain || ex.overlayPresent) && !navNames.has(c.name) && !seen.has(`${c.role}|${c.name}|${c.context}`) && !NEVER.test(c.name))
       .slice(0, 40)
     if (!controls.length) return
-    const qs = {}
-    for (const c of controls) { qs[`e${c.index}`] = Q.controlEffect(c); qs[`i${c.index}`] = Q.irreversible(c) }
-    const { answers } = await jev.ask({ screen: where, text: await digest(page, { maxChars: 1200 }) }, qs, { tag: 'act.plan' })
     const order = { changes_view: 0, opens_menu: 1, opens_form: 2, navigates: 3, saves_immediately: 4, destructive: 5, downloads: 6, signs_out: 9, leaves_app: 9 }
-    const plan = controls.map((c) => ({ c, effect: answers[`e${c.index}`]?.choice ?? 'navigates', irreversible: (answers[`i${c.index}`]?.noul ?? 0) >= 0.6 }))
+    const plan = controls.map((c) => ({ c, effect: controlEffect(c), irreversible: isIrreversible(c) }))
       .sort((a, b) => order[a.effect] - order[b.effect])
     let acted = false
     let stale = false
@@ -317,7 +307,7 @@ async function actOnScreen(page, where, navNames) {
       const el = locate(page, c)
       if (!(await el.count())) { seen.delete(key); stale = true; break } // the screen changed under the plan: re-read it
       actionsDone.n += 1
-      const before = await digest(page, { maxChars: 1500 })
+      const before = await screenSignals(page)
       const url0 = page.url()
       const mark = page.__bqResponses.length
       ctx.screen = where
@@ -336,10 +326,10 @@ async function actOnScreen(page, where, navNames) {
             const yes = dialog.getByRole('button', { name: /^(yes|confirm|delete|remove|submit|send|save|continue|ok|approve|archive|cancel order|void|post)\b/i }).last()
             if (await yes.count()) await humanClick(page, yes, 'confirm')
             await settle(page)
-            const j = await judge(page, before, 'action', c.name)
-            record({ screen: where, control: c.name, row: c.context, effect, confirmed: true, outcome: j.outcome, certainty: j.certainty, http: (await apiErrors(page, mark)).map((r) => `${r.method} ${r.path} → ${r.status}`) })
+            const j = await judge(page, before, 'action', { mark, name: c.name })
+            record({ screen: where, control: c.name, row: c.context, effect, confirmed: true, outcome: j.outcome, sure: j.sure, why: j.why, http: (await apiErrors(page, mark)).map((r) => `${r.method} ${r.path} → ${r.status}`) })
           }
-        } else { const j = await judge(page, before, 'action', c.name); record({ screen: where, control: c.name, effect, outcome: `dialog: ${j.outcome}`, certainty: j.certainty }) }
+        } else { const j = await judge(page, before, 'action', { mark, name: c.name }); record({ screen: where, control: c.name, effect, outcome: `dialog: ${j.outcome}`, sure: j.sure, why: j.why }) }
         await closeOverlays(page)
         continue
       }
@@ -361,13 +351,15 @@ async function actOnScreen(page, where, navNames) {
         continue
       }
       const errs = await apiErrors(page, mark)
-      const j = await judge(page, before, 'action', c.name)
-      record({ screen: where, control: c.name, row: c.context, effect, outcome: j.outcome, certainty: j.certainty, toast: await toastText(page), http: errs.map((r) => `${r.method} ${r.path} → ${r.status}`) })
+      const j = await judge(page, before, 'action', { mark, name: c.name })
+      record({ screen: where, control: c.name, row: c.context, effect, outcome: j.outcome, sure: j.sure, why: j.why, toast: await toastText(page), http: errs.map((r) => `${r.method} ${r.path} → ${r.status}`) })
       if (errs.some((r) => r.status >= 500)) await finding(page, 'server-error-on-action', 'high', `${where}: "${c.name}" gave a server error (${errs.map((r) => `${r.method} ${r.path} → ${r.status}`).join('; ')})`)
-      else if (j.certainty >= 0.7 && j.outcome === 'nothing_happened' && effect !== 'changes_view') await finding(page, 'dead-control', 'medium', `${where}: "${c.name}" (expected: ${effect.replace(/_/g, ' ')}) did nothing visible`, { judgedBy: 'jev' })
-      else if (j.certainty >= 0.7 && j.outcome === 'refused_raw') await finding(page, 'raw-refusal', 'medium', `${where}: "${c.name}" was refused with a technical message`, { judgedBy: 'jev' })
-      else if (j.certainty >= 0.7 && j.outcome === 'done_silently' && effect === 'saves_immediately') await finding(page, 'no-feedback', 'low', `${where}: "${c.name}" seems to have worked but nothing confirms it`, { judgedBy: 'jev' })
-      else if (j.certainty >= 0.7 && j.outcome === 'signed_out') await finding(page, 'unexpected-sign-out', 'high', `${where}: "${c.name}" signed the user out`)
+      else if (j.sure && j.outcome === 'crashed') await finding(page, 'crash-on-action', 'high', `${where}: "${c.name}" broke the screen: ${j.why}`)
+      else if (j.sure && j.outcome === 'nothing_happened' && effect !== 'changes_view') await finding(page, 'dead-control', 'medium', `${where}: "${c.name}" (expected: ${effect.replace(/_/g, ' ')}) did nothing: ${j.why}`)
+      else if (j.sure && j.outcome === 'refused_raw') await finding(page, 'raw-refusal', 'medium', `${where}: "${c.name}" was refused with a technical or vague message: "${j.why.slice(0, 160)}"`)
+      else if (j.sure && j.outcome === 'refused_silently') await finding(page, 'silent-refusal', 'medium', `${where}: "${c.name}" was refused by the server and nothing on screen says so (${j.why.slice(0, 160)})`)
+      else if (j.sure && j.outcome === 'done_silently') await finding(page, 'no-feedback', 'low', `${where}: "${c.name}" saved something (${j.why.slice(0, 120)})`)
+      else if (j.sure && j.outcome === 'signed_out') await finding(page, 'unexpected-sign-out', 'high', `${where}: "${c.name}" signed the user out`)
       if (page.url() !== url0) { await page.goBack().catch(() => {}); await settle(page) }
       await flushSignals(page)
       break // the screen may have changed: re-read it before the next control
@@ -388,7 +380,7 @@ async function screenReady(page) {
 
 /* ---------------------------------------------------------------- main */
 const s = await openSession(sessionOptions(project, { visible: VISIBLE }))
-const page = await openAs(s, project, ROLE, { jev })
+const page = await openAs(s, project, ROLE)
 page.__bqResponses = []
 page.on('response', (r) => { if (watch.origins.some((o) => r.url().startsWith(o)) && r.request().method() !== 'GET') page.__bqResponses.push({ method: r.request().method(), path: new URL(r.url()).pathname, status: r.status() }) })
 page.on('dialog', (d) => { log(`browser dialog "${d.message()}" — accepted`); d.accept().catch(() => {}) })
@@ -396,9 +388,12 @@ ctx.quietStyle = true
 log(`act mode as ${ROLE}; records created by this run carry the tag ${TAG}`)
 const navSel = `${who.nav ?? who.app.nav ?? 'nav'}:visible`
 const nav = () => page.locator(navSel).first()
-const items = (await nav().locator('a[href], button').evaluateAll((els) => els.map((e) => ({ name: (e.getAttribute('aria-label') || e.innerText).replace(/\s+/g, ' ').trim(), tag: e.tagName.toLowerCase() }))).catch(() => []))
+const navItems = (await nav().locator('a[href], button').evaluateAll((els) => els.map((e) => ({ name: (e.getAttribute('aria-label') || e.innerText).replace(/\s+/g, ' ').trim(), tag: e.tagName.toLowerCase() }))).catch(() => []))
   .filter((i) => i.name && !NEVER.test(i.name))
-const navNames = new Set(items.map((i) => i.name))
+const navNames = new Set(navItems.map((i) => i.name))
+// a one-screen app (or one whose navigation isn't a <nav>) is acted on where sign-in lands
+const landing = page.url()
+const items = navItems.length ? navItems : [{ name: 'Landing', tag: null }]
 log(`screens: ${items.map((i) => i.name).join(' | ')}`)
 const started = Date.now()
 for (const item of items) {
@@ -406,19 +401,19 @@ for (const item of items) {
   if (actionsDone.n >= MAX_ACTIONS) { log(`action budget (${MAX_ACTIONS}) reached`); break }
   await closeOverlays(page)
   ctx.screen = `${item.name}`
-  if (!(await humanClick(page, nav().getByRole(item.tag === 'a' ? 'link' : 'button', { name: item.name, exact: true }).first(), `nav ${item.name}`))) continue
+  const open = async () => (item.tag ? humanClick(page, nav().getByRole(item.tag === 'a' ? 'link' : 'button', { name: item.name, exact: true }).first(), `nav ${item.name}`) : page.goto(landing).then(() => true, () => false))
+  if (!(await open())) continue
   await settle(page)
   await screenReady(page)
   log(`━━ ${item.name}`)
-  const reopen = async () => { await closeOverlays(page); await humanClick(page, nav().getByRole(item.tag === 'a' ? 'link' : 'button', { name: item.name, exact: true }).first(), `nav ${item.name}`); await settle(page) }
+  const reopen = async () => { await closeOverlays(page); await open(); await settle(page) }
   if (await isFormScreen(page)) { await formScreen(page, item.name, reopen).catch(async (e) => { await finding(page, 'act-error', 'low', `${item.name}: form routine stopped: ${String(e.message).slice(0, 160)}`, { noShot: true }) }); continue }
   await actOnScreen(page, item.name, navNames).catch(async (e) => { await finding(page, 'act-error', 'low', `${item.name}: act mode stopped on this screen: ${String(e.message).slice(0, 160)}`, { noShot: true }) })
   await flushSignals(page)
 }
-jev.save()
 const by = {}
 for (const e of effects) by[e.outcome] = (by[e.outcome] ?? 0) + 1
-writeSummary(RUN_DIR, { title: `act ${ROLE}`, jev: jev.summary(), extra: [`Actions tried: ${actionsDone.n} in ${Math.round((Date.now() - started) / 1000)}s · effects recorded: ${effects.length} (effects.jsonl) · tag ${TAG}`, `Outcomes: ${Object.entries(by).map(([k, v]) => `${k} ${v}`).join(', ')}`] })
+writeSummary(RUN_DIR, { title: `act ${ROLE}`, extra: [`Actions tried: ${actionsDone.n} in ${Math.round((Date.now() - started) / 1000)}s · effects recorded: ${effects.length} (effects.jsonl) · tag ${TAG}`, `Outcomes: ${Object.entries(by).map(([k, v]) => `${k} ${v}`).join(', ')}`] })
 console.log(`\n✔ act ${ROLE}: ${actionsDone.n} actions, ${effects.length} effects → ${RUN_DIR}`)
 await persistSession(s, project, ROLE)
 await s.close()

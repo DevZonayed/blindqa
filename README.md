@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src=".github/social-preview.png" alt="blindqa — human-like QA for any web app, a Claude Code and Codex plugin" width="720">
+<img src=".github/social-preview.png" alt="blindqa — human-like QA testing for any web app, a Claude Code and Codex plugin built on Playwright" width="720">
 
 # blindqa — human-like QA testing for any web app
 
-**An AI QA plugin for Claude Code and Codex, an MCP server and a CLI.**
+**An AI QA testing plugin for Claude Code and Codex, an MCP server and a CLI — built on Playwright.**
 It drives your app in a real browser the way a person does, finds the bugs a real user would hit,
-and re-tests only what your code changes touch.
+and re-tests only what your code changes touch. No AI model in the test loop: runs cost zero tokens.
 
 [![CI](https://github.com/DevZonayed/blindqa/actions/workflows/ci.yml/badge.svg)](https://github.com/DevZonayed/blindqa/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/DevZonayed/blindqa?sort=semver)](https://github.com/DevZonayed/blindqa/releases)
@@ -16,6 +16,7 @@ and re-tests only what your code changes touch.
 [![Codex plugin](https://img.shields.io/badge/Codex-plugin-000000)](#codex)
 [![MCP server](https://img.shields.io/badge/MCP-server-6E56CF)](#command-line--any-mcp-client)
 [![Playwright](https://img.shields.io/badge/Playwright-powered-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev)
+[![GitHub stars](https://img.shields.io/github/stars/DevZonayed/blindqa?style=social)](https://github.com/DevZonayed/blindqa/stargazers)
 
 [Install](#install) · [What it finds](#what-it-finds) · [How it works](#how-it-works) · [Re-test what changed](#re-test-only-what-changed) · [Browsers](#one-browser-setting-per-machine) · [FAQ](#faq) · [Docs](https://devzonayed.github.io/blindqa/)
 
@@ -23,12 +24,13 @@ and re-tests only what your code changes touch.
 
 ---
 
-blindqa is an **automated, human-like QA tester** for web applications. Instead of checking what is in the
-DOM, it checks what a person can actually see and use: it scrolls with the mouse wheel, moves a visible
-cursor, clicks only controls a person could see and reach, signs in as every role, and opens every menu,
-dropdown and form. It works as a **Claude Code plugin**, a **Codex plugin**, a **Model Context Protocol (MCP)
-server** for any AI agent, and a plain **command-line tool** — and it keeps your coding agent's token use low
-by letting scripts do the repeatable work.
+blindqa is an **automated, human-like QA tester** for web applications — exploratory testing, end-to-end
+testing and regression re-tests in one tool. Instead of checking what is in the DOM, it checks what a person
+can actually see and use: it scrolls with the mouse wheel, moves a visible cursor, clicks only controls a
+person could see and reach, signs in as every role, and opens every menu, dropdown and form. It works as a
+**Claude Code plugin**, a **Codex plugin**, a **Model Context Protocol (MCP) server** for any AI agent, and a
+plain **command-line tool**. Your coding agent sets it up and verifies what it finds; scripts do all of the
+testing, so a run costs no model tokens and nothing about your app is sent to an AI.
 
 ## Highlights
 - **End-to-end testing like a real user** — every screen, for every role, on desktop and phone width, built on [Playwright](https://playwright.dev).
@@ -37,7 +39,7 @@ by letting scripts do the repeatable work.
 - **Read-only by default** — crawls block every write request at the network level; journeys and "act mode" that change data are opt-in.
 - **Never pushes your QA data** — everything lives in one `.blindqa/` folder that git ignores and a pre-push hook guards.
 - **Any browser setup** — a local window, headless CI, your own Chrome over CDP, an [n.eko](https://github.com/m1k1o/neko) container your team can watch, or Orca's built-in browser.
-- **Low cost by design** — scripts drive and judge; optional [Jev](https://typesafe.ai) makes tiny judgment calls (~$0.00002 each); your agent only sets up, writes journeys and verifies what's new.
+- **Zero tokens per run** — scripts drive the browser, run every check and make every judgment call (what a button will do, whether a submit worked); your agent only sets up, writes journeys and verifies what's new.
 
 ## What it finds
 Real examples from its checks — the kinds of bugs users hit and unit tests don't:
@@ -66,9 +68,7 @@ claude plugin marketplace add DevZonayed/blindqa
 claude plugin install blindqa@blindqa
 ```
 Restart Claude Code, then ask: *"Set up blindqa for this repo."* You get the `blindqa` MCP server
-(`blindqa_*` tools), six skills and the `blindqa-verifier` agent. Claude Code asks for the optional Jev
-(TypeSafe) key and model on install (it may say "2 userConfig options not yet set"); both are optional —
-leave them empty to run with fixed rules only, or set them later with `/plugin configure blindqa@blindqa`.
+(`blindqa_*` tools), six skills and the `blindqa-verifier` agent. No API keys to set.
 
 Update: `claude plugin marketplace update blindqa && claude plugin update blindqa@blindqa`
 · Remove: `claude plugin uninstall blindqa@blindqa && claude plugin marketplace remove blindqa`
@@ -78,7 +78,7 @@ Update: `claude plugin marketplace update blindqa && claude plugin update blindq
 codex plugin marketplace add DevZonayed/blindqa
 codex plugin add blindqa@blindqa
 ```
-Start a new Codex session and ask the same way. Optional Jev key: `TYPESAFE_API_KEY=…` in `~/.blindqa/.env`.
+Start a new Codex session and ask the same way.
 
 Update: `codex plugin marketplace upgrade` (then `codex plugin add blindqa@blindqa` again)
 · Remove: `codex plugin remove blindqa@blindqa && codex plugin marketplace remove blindqa`
@@ -113,7 +113,7 @@ blindqa index                          # baseline for re-tests
 | Decision | Who decides | Cost |
 |---|---|---|
 | Driving the browser; visibility, scroll, contrast, size checks; write blocking; console and HTTP errors; code index; change impact; run comparison | **scripts** | machine time |
-| Small person-like judgments: what kind of screen, raw codes shown to users, unclear button names, which control a step means | **Jev** (optional) | ~$0.00002 each, cached |
+| Judgment calls: error or blank screens, raw ids and codes shown to users, button names a screen reader can't tell apart, what a control will do, what a field expects, whether a submit worked | **scripts** ([`src/judge.mjs`](src/judge.mjs)) | machine time |
 | Setting up the project, writing journeys, verifying new high-severity findings, writing the report | **your coding agent** | model tokens — only here |
 
 Three ways to test:
@@ -159,22 +159,35 @@ testing can't push at all. Check with `blindqa guard`. Details: [docs/LAYOUT.md]
 | `machine detect\|set\|show\|test` | `blindqa_machine` | this computer's browser mode |
 | `init <src>` | `blindqa_init` | clone (push disabled) or adopt a repo; create `.blindqa/`; install the guard |
 | `guard [--install]` / `layout` | `blindqa_guard` / `blindqa_layout` | never-push checks / folder layout |
-| `doctor [--jev]` | `blindqa_doctor` | browser, guard, app, roles, credentials, mail, Jev |
+| `doctor` | `blindqa_doctor` | browser, guard, app, roles, credentials, mail |
 | `setup` | `blindqa_setup` | Chromium for Playwright |
 | `crawl --role R [--phone] [--only re] [--start /path] [--headless] [--bg]` | `blindqa_crawl` | read-only crawl |
 | `act --role R` | `blindqa_act` | use every option (real writes; test environments only) |
-| `journey <file> [--shadow]` | `blindqa_journey` | run a journey |
+| `journey <file>` | `blindqa_journey` | run a journey |
 | `index` / `changes [--since ref]` / `retest [--run-tests] [--accept]` | `blindqa_index` / `blindqa_changes` / `blindqa_retest` | code index, change impact, targeted re-test |
 | `jobs` / `job <id>` / `stop <id>` | `blindqa_jobs` / `blindqa_job` / `blindqa_stop` | background runs |
 | `runs` / `summary [run]` / `compare a b` | `blindqa_runs` / `blindqa_summary` / `blindqa_compare` | results |
-| — | `blindqa_findings` / `blindqa_escalations` / `blindqa_profile` | details for verification |
-| `shadow-report <run>…` | `blindqa_shadow_report` | Jev accuracy on scripted journeys |
+| — | `blindqa_findings` / `blindqa_unsure` / `blindqa_profile` | details for verification |
 
 ## FAQ
 
 **How do I add QA testing to Claude Code or Codex?**
 Install the blindqa plugin (two commands above) and ask your agent to set it up for your repo. The
 `blindqa-setup` skill walks through the browser, the project folder, roles and logins.
+
+**Is blindqa an AI testing tool?**
+It is an AI QA tool for the agent you already use: Claude Code or Codex sets it up, decides what to run and
+checks what it finds. The testing itself is deterministic Playwright scripts, so two runs on the same app
+give the same results and a run costs no model tokens.
+
+**Does it send my app's data to an AI model?**
+No. Crawls, journeys, act mode and re-tests run locally as scripts. Your coding agent reads only the short
+summaries and the screenshots it chooses to verify.
+
+**How is it different from Playwright MCP?**
+Playwright MCP hands your agent a browser, so every click and page read costs tokens and can vary between
+runs. blindqa runs the browser by script and gives the agent finished reports — and adds what a person would
+notice: visibility, scroll locks, every role, every menu, and re-tests of only what changed.
 
 **How is this different from writing Playwright tests?**
 Playwright tests check what you thought to assert. blindqa explores like a person — every screen, every
@@ -197,6 +210,11 @@ blindqa never changes your tracked files.
 Only for setup, writing journeys and verifying new findings. Running crawls, journeys and re-tests costs no
 model tokens; the agent reads one short summary per run. See [docs/COSTS.md](docs/COSTS.md).
 
+**Does it check accessibility?**
+It checks what a person meets: unlabeled controls, names a screen reader can't tell apart, low text
+contrast (WCAG ratio), tiny tap targets, and keyboard-closable menus. It is not a full WCAG audit — pair it
+with axe or Lighthouse for that.
+
 **Does it work in CI?**
 Yes — `headless` mode, and `blindqa retest --run-tests --headless` for pull requests.
 
@@ -206,10 +224,14 @@ NestJS, Express, Fastify, Hono-style routers, Next.js route handlers. Imports th
 aliases and workspace packages. Anything else still gets crawled; impact falls back to wider re-tests.
 
 ## Project status
-Version 0.2. Tested end to end: the never-push guard against a real remote, `local`/`headless`/`cdp`
+Version 0.3. Tested end to end: the never-push guard against a real remote, `local`/`headless`/`cdp`
 browser modes, the code index on a 3,312-file TypeScript monorepo (~0.5 s), change impact, and the full
 change → plan → targeted re-test → NEW/FIXED/STILL cycle. `neko` mode ships with a template that hasn't
 been run in CI yet; `orca` mode is experimental. See the [changelog](CHANGELOG.md).
+
+## Support the project
+If blindqa found a bug for you, a ⭐ [star on GitHub](https://github.com/DevZonayed/blindqa) helps other
+developers find it.
 
 ## Contributing
 Bug reports, false findings ("blindqa flagged something that's fine"), new browser setups and framework

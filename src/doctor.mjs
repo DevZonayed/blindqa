@@ -1,7 +1,6 @@
 /** Is everything in place to run? Shared by `blindqa doctor` and the MCP tool. */
 import { existsSync } from 'node:fs'
 import { loadProject } from './project.mjs'
-import { envValue } from './jev/client.mjs'
 import { checkGuard } from './guard.mjs'
 import { resolveBrowser, orcaCdpUrl } from './machine.mjs'
 import { cdpWebSocket } from './browser/session.mjs'
@@ -27,7 +26,7 @@ async function browserCheck(project, ok) {
   }
 }
 
-export async function doctor(start, { pingJev = false } = {}) {
+export async function doctor(start) {
   const checks = []
   const ok = (name, pass, detail = '') => checks.push({ name, pass, detail })
   ok('node >= 20', Number(process.versions.node.split('.')[0]) >= 20, process.versions.node)
@@ -47,14 +46,6 @@ export async function doctor(start, { pingJev = false } = {}) {
     if (project.profile.mail?.mailpit) {
       ok('mail catcher', await fetch(project.profile.mail.mailpit, { signal: AbortSignal.timeout(3000) }).then((r) => r.ok, () => false), project.profile.mail.mailpit)
     }
-    ok('Jev key', !!envValue('TYPESAFE_API_KEY'), 'TYPESAFE_API_KEY in env, .blindqa/.env or ~/.blindqa/.env (optional: without it, fixed rules only)')
-    if (pingJev && envValue('TYPESAFE_API_KEY')) {
-      try {
-        const { createClient, Choice } = await import('./jev/client.mjs')
-        const r = await createClient({ model: project.profile.jev?.model }).ask({ screen: 'A sign-in form with Email, Password and a "Sign in" button' }, { kind: Choice('What is the user looking at?', { sign_in: 'a sign-in screen', content: 'content', error: 'an error' }) })
-        ok('Jev answers', r.answers.kind?.choice === 'sign_in', `${r.model}: ${r.answers.kind?.choice} in ${Math.round(r.ms)} ms`)
-      } catch (e) { ok('Jev answers', false, e.message) }
-    }
   }
-  return { ok: checks.every((c) => c.pass || /^Jev key$/.test(c.name)), checks }
+  return { ok: checks.every((c) => c.pass), checks }
 }

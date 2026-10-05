@@ -7,7 +7,6 @@ import { openSession, sessionOptions } from './browser/session.mjs'
 import { openAs, persistSession } from './auth/login.mjs'
 import { useRunDir, watch, VISIBLE, flushSignals } from './browser/human.mjs'
 import { extractCandidates, digest } from './browser/extract.mjs'
-import { engineFor } from './jev/engine.mjs'
 
 const role = process.argv[2]
 const project = loadProject()
@@ -15,7 +14,7 @@ const runDir = useRunDir(project.runDir(`signin-${role.toLowerCase()}-${new Date
 watch.origins = [...Object.values(project.profile.apps).map((a) => new URL(a.baseUrl).origin), ...(project.profile.api?.origins ?? [])]
 const s = await openSession(sessionOptions(project, { visible: VISIBLE }))
 try {
-  const page = await openAs(s, project, role, { jev: engineFor(project, runDir) })
+  const page = await openAs(s, project, role)
   await flushSignals(page)
   const c = await extractCandidates(page)
   console.log(`\n${role} signed in → ${page.url()}  "${c.title}"`)

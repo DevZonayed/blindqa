@@ -10,5 +10,6 @@
 - [ ] Crawls stay read-only; nothing writes outside `.blindqa/`; no tracked project files are edited
 - [ ] Extraction output changed → `EXTRACTOR_VERSION` bumped and a test added (one that matches, one that must not)
 - [ ] Plugin files changed → `claude plugin validate` on the manifest, skills and agents
+- [ ] Site changed → `cd site && npm run typecheck && npm run build`, and the built `docs/` files are committed
 - [ ] No secrets, private URLs or customer data in code, tests, fixtures or screenshots
 - [ ] `CHANGELOG.md` has a line under "Unreleased"

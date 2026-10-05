@@ -42,7 +42,7 @@ Requirements: Node.js 20+, git. No build step — the code is plain ES modules.
 | `src/index/` | code index, change impact, targeted re-tests |
 | `src/guard.mjs`, `src/layout.mjs` | the `.blindqa/` folder and its never-push guard |
 | `src/machine.mjs` | per-machine browser settings and detection |
-| `src/jev/` | optional Jev judgment engine |
+| `src/judge.mjs` | script judgments: a control's likely effect, a field's kind, what happened after an action |
 | `test/` | `npm test` |
 | `docs/` | user docs, published as the website with GitHub Pages (Jekyll; layout in `docs/_layouts/`) |
 | `site/` | the landing page: React + Tailwind + components from 21st.dev, pre-rendered into `docs/index.html` |
@@ -55,8 +55,8 @@ Requirements: Node.js 20+, git. No build step — the code is plain ES modules.
    never edit a project's tracked files (its `.gitignore` included) or push anywhere.
 3. **Reads stay read-only.** Crawls must not change app data: keep the network write-blocker in place.
    Anything that writes (act mode, journeys) is opt-in and documented as such.
-4. **Scripts before tokens.** Prefer a deterministic check or a regex over asking a model. If a model is
-   needed, it is Jev (small, cached, with a confidence threshold) — not the calling agent.
+4. **Scripts before tokens.** Every check runs as a script or a regex, with no model in the run loop. When
+   the signals can't settle something, mark it unsure (`sure: false`) and leave it for the calling agent.
 5. **A person's view decides.** Visibility checks must reflect what a person can see and use (covered,
    clipped, transparent, off-screen, scroll-locked), not what is in the DOM.
 6. **No secrets, no private data** in code, tests, fixtures, docs or issues.
@@ -98,6 +98,15 @@ pages are the markdown files in `docs/`, rendered by Jekyll with `docs/_layouts/
 - If you touched runners or the harness: run a crawl against a real app and say which in the PR.
 
 ## Commits and pull requests
+`main` is protected for everyone, maintainers included: nothing is pushed to it directly. Every change goes
+through a pull request that needs all CI checks green (tests on Linux and macOS, the site build), a branch
+that is up to date with `main`, and resolved review threads; it is merged by squash or rebase, so history
+stays linear. Force-pushes to `main`, deleting it, and moving or deleting release tags are blocked.
+```
+git switch -c fix/short-name     # or fork the repo first if you don't have write access
+git commit … && git push -u origin fix/short-name
+gh pr create --fill              # then wait for CI; the maintainer reviews and merges
+```
 - One topic per PR; describe what a user will notice and how you tested it.
 - Commit messages: a short imperative summary line ("Add Fastify route extraction"), then why.
 - Fill in the PR template's checklist. Add a line to `CHANGELOG.md` under "Unreleased".

@@ -1,0 +1,22 @@
+# blindqa
+
+> Human-like QA testing for any web app: an open-source (MIT) Claude Code plugin, Codex plugin, MCP server and CLI. Playwright drives the app in a real browser the way a person does, reports the bugs a real user would hit, and re-tests only what code changes touch. There is no AI model in the test loop: crawls, journeys, act mode and re-tests are deterministic scripts, so a run costs zero model tokens and no app data is sent to an AI. The coding agent (Claude Code, Codex or any MCP client) sets blindqa up, decides what to run and verifies new findings.
+
+Key facts:
+- Install in Claude Code: `/plugin marketplace add DevZonayed/blindqa` then `/plugin install blindqa@blindqa`. In Codex: `codex plugin marketplace add DevZonayed/blindqa` then `codex plugin add blindqa@blindqa`. Requires Node.js 20+ and git; no API keys.
+- Finds: invisible, covered, clipped or off-screen controls; scroll-locked pages; ⋯ menus that open off-screen; empty-submit forms with no error; buttons a role sees but the server refuses; forms that accept nonsense; raw developer errors; phone-width navigation problems; raw ids and codes shown to users; button names a screen reader can't tell apart; low contrast and tiny tap targets.
+- Three ways to test: read-only crawls (every write request blocked at the network level), scripted journeys, and act mode (uses every option with valid data; test environments only).
+- Re-test only what changed: a script-built code index maps git changes to affected routes through imports and API calls (Next.js, React Router, SvelteKit, Nuxt, Remix, NestJS, Express, Fastify, Hono-style routers) and reports NEW / FIXED / STILL.
+- Browser modes per machine: local window, headless CI, Chrome over CDP, an n.eko container, Orca.
+- QA data lives in `.blindqa/`, which is git-ignored, listed in `.git/info/exclude` and guarded by a pre-push hook, so it never reaches a remote.
+
+## Docs
+- [Install](https://devzonayed.github.io/blindqa/INSTALL.html): Claude Code, Codex, MCP server and CLI; first steps on a new machine
+- [Browser modes](https://devzonayed.github.io/blindqa/BROWSERS.html): local, headless, CDP, n.eko and Orca setup
+- [Re-test only what changed](https://devzonayed.github.io/blindqa/RETEST.html): code index, change impact, targeted re-tests
+- [The .blindqa folder](https://devzonayed.github.io/blindqa/LAYOUT.html): layout and the never-push guard
+- [Costs](https://devzonayed.github.io/blindqa/COSTS.html): who does what and what it costs
+
+## Source
+- [GitHub repository](https://github.com/DevZonayed/blindqa): README, changelog, contributing guide
+- [Command reference](https://github.com/DevZonayed/blindqa#commands): every CLI command and MCP tool

@@ -1,6 +1,6 @@
 ---
-title: "Re-test only what changed"
-description: "How blindqa indexes your code, maps git changes to affected pages and re-runs only the crawls and journeys that cover them."
+title: "Re-test only what changed — test impact analysis from git"
+description: "How blindqa indexes your code by script, maps git changes to the pages and endpoints they touch, and re-runs only the crawls and journeys that cover them."
 ---
 
 # Re-test only what changed

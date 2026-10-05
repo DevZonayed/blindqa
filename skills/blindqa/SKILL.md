@@ -6,8 +6,8 @@ description: Human-like QA for web apps with blindqa — start here. Routes to t
 # blindqa — start here
 
 blindqa tests a web app the way a person uses it: a real browser, wheel scrolling, a visible cursor,
-clicking only what a person could see and reach. Scripts do the driving and the checking; Jev (optional,
-~$0.00002 per decision) makes small judgment calls; **you, the agent, are the expensive part** — you set
+clicking only what a person could see and reach. Scripts do the driving, the checking and the judgment
+calls, with no model in the run loop; **you, the agent, are the expensive part** — you set
 things up, decide what to run, read short reports and verify what matters.
 
 ## Which skill

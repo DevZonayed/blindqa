@@ -1,6 +1,6 @@
 /**
- * Playwright page -> the candidate list Jev will choose from.
- * Pure DOM work, runs inside the page, ~5ms. No model involved.
+ * Playwright page -> the controls on screen, the way a person would list them (role, name, row, region).
+ * Pure DOM work, runs inside the page, ~5ms.
  */
 const INTERACTIVE =
   'button, a[href], input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="link"], [role="checkbox"], [role="radio"], [role="switch"], [role="tab"], [role="combobox"], [role="option"], [role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [contenteditable="true"]'
@@ -117,6 +117,13 @@ export async function extractCandidates(page, { onlyVisible = true, max = 255, s
           name,
           options,
           placeholder: clean(el.placeholder || ''),
+          type: el.tagName === 'TEXTAREA' ? 'textarea' : (el.getAttribute('type') || '').toLowerCase(),
+          autocomplete: (el.getAttribute('autocomplete') || '').toLowerCase(),
+          inputmode: el.getAttribute('inputmode') || '',
+          haspopup: el.getAttribute('aria-haspopup') || '',
+          external: el.tagName === 'A' && !!el.href && new URL(el.href, location.href).origin !== location.origin,
+          samePage: el.tagName === 'A' && !!el.href && new URL(el.href, location.href).pathname === location.pathname,
+          download: el.hasAttribute('download'),
           required: !!el.required,
           nativeSelect,
           region: regionOf(el),
@@ -147,7 +154,7 @@ export async function extractCandidates(page, { onlyVisible = true, max = 255, s
 export async function digest(page, { maxChars = 1800 } = {}) {
   return page.evaluate((limit) => {
     // our cursor + HUD are not part of the application
-    const ours = [...document.querySelectorAll('[data-jev-ui]')]
+    const ours = [...document.querySelectorAll('[data-qa-ui]')]
     const restore = ours.map((el) => [el, el.style.display])
     for (const el of ours) el.style.display = 'none'
     const clean = (s) => (s ?? '').replace(/\s+/g, ' ').trim()
@@ -171,29 +178,4 @@ export async function digest(page, { maxChars = 1800 } = {}) {
     for (const [el, display] of restore) el.style.display = display
     return result
   }, maxChars)
-}
-
-/** The option map handed to a Jev Choice. Two key strategies, so we can measure both. */
-export function toCriteria(candidates, strategy = 'indexed') {
-  const criteria = {}
-  const keyFor = new Map()
-  for (const c of candidates) {
-    let key
-    if (strategy === 'named') {
-      const base = (c.name || c.role).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || 'el'
-      key = base
-      let n = 2
-      while (criteria[key]) key = `${base}_${n++}`
-    } else {
-      key = `e${c.index}`
-    }
-    const opts = c.options?.length ? ` offering the values [${c.options.join(', ')}]` : ''
-    const hint = c.placeholder ? ` with the hint "${c.placeholder}"` : ''
-    criteria[key] =
-      strategy === 'named'
-        ? `${c.role} in ${c.region}${opts}${hint}${c.disabled ? ' (disabled)' : ''}`
-        : `${c.role} labelled "${c.name}" in ${c.region}${opts}${hint}${c.disabled ? ' (disabled)' : ''}`
-    keyFor.set(key, c)
-  }
-  return { criteria, keyFor }
 }
