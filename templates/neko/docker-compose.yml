@@ -1,0 +1,40 @@
+# n.eko + Chromium for blindqa.
+#   People watch (and can take over) the browser at http://127.0.0.1:8080 (password: neko / admin: admin).
+#   blindqa drives the same browser through Chrome DevTools at http://127.0.0.1:9222.
+#
+#   docker compose up -d
+#   blindqa machine set --browser neko --cdp-url http://127.0.0.1:9222 --viewer-url http://127.0.0.1:8080
+#   blindqa machine test
+#
+# Ports are bound to 127.0.0.1 on purpose: the DevTools port gives full control of the browser.
+# To let teammates watch from other machines, change the 8080 line (not 9222) and set NEKO_WEBRTC_NAT1TO1
+# to this machine's LAN IP. Variable names follow neko v3 — check https://neko.m1k1o.net if yours differ.
+services:
+  neko:
+    image: ghcr.io/m1k1o/neko/chromium:latest
+    restart: unless-stopped
+    shm_size: 2gb
+    cap_add: [SYS_ADMIN]            # Chromium's sandbox inside the container
+    ports:
+      - "127.0.0.1:8080:8080"       # neko web viewer
+      - "52000-52100:52000-52100/udp" # WebRTC video for the viewer
+      - "127.0.0.1:9222:9222"       # DevTools for blindqa (forwarded by the `cdp` service below)
+    environment:
+      NEKO_DESKTOP_SCREEN: 1440x900@30
+      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: neko
+      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: admin
+      NEKO_WEBRTC_EPR: 52000-52100
+      NEKO_WEBRTC_ICELITE: "1"
+      NEKO_WEBRTC_NAT1TO1: 127.0.0.1
+    volumes:
+      # Debian's chromium launcher reads /etc/chromium.d/*: this adds --remote-debugging-port=9223
+      - ./chromium.d/blindqa-remote-debugging:/etc/chromium.d/blindqa-remote-debugging:ro
+
+  # Chromium only listens on the container's own 127.0.0.1:9223; this forwards 9222 -> 9223 inside the
+  # same network namespace, so the published port above reaches it.
+  cdp:
+    image: alpine/socat:latest
+    restart: unless-stopped
+    network_mode: service:neko
+    command: tcp-listen:9222,fork,reuseaddr tcp-connect:127.0.0.1:9223
+    depends_on: [neko]

@@ -1,0 +1,15 @@
+{
+  "name": "blindqa",
+  "description": "blindqa \u2014 human-like QA for web apps that re-tests only what changed.",
+  "owner": {
+    "name": "Jonayed Ahamed",
+    "email": "dev.jonayed@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "blindqa",
+      "source": "./",
+      "description": "Human-like QA for any web app: Playwright drives it like a person on whatever browser this machine has (local, headless, CDP, n.eko, Orca), scripts re-test only what code changes touch, Jev makes small judgment calls, and nothing it writes ever reaches a git remote."
+    }
+  ]
+}

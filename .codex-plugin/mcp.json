@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "blindqa": {
+      "command": "node",
+      "args": ["./mcp/launch.mjs"],
+      "cwd": "./"
+    }
+  }
+}
