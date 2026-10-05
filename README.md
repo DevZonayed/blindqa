@@ -67,7 +67,8 @@ claude plugin install blindqa@blindqa
 ```
 Restart Claude Code, then ask: *"Set up blindqa for this repo."* You get the `blindqa` MCP server
 (`blindqa_*` tools), six skills and the `blindqa-verifier` agent. Claude Code asks for the optional Jev
-(TypeSafe) key on install; leave it empty to run with fixed rules only.
+(TypeSafe) key and model on install (it may say "2 userConfig options not yet set"); both are optional —
+leave them empty to run with fixed rules only, or set them later with `/plugin configure blindqa@blindqa`.
 
 Update: `claude plugin marketplace update blindqa && claude plugin update blindqa@blindqa`
 · Remove: `claude plugin uninstall blindqa@blindqa && claude plugin marketplace remove blindqa`
