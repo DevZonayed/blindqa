@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "project": {
+    "name": "blindqa-site",
+    "productType": "developer-tool landing page",
+    "stack": [
+      "react",
+      "tailwind-v4",
+      "vite"
+    ]
+  },
+  "sources": {
+    "tokens": [
+      "src/styles.css (@theme)"
+    ],
+    "components": [
+      "src/components/ui"
+    ],
+    "assets": [],
+    "instructions": []
+  },
+  "design": {
+    "colorMode": "dark-only (html.dark; dark: variant bound to .dark)",
+    "colors": {
+      "background": "#05070f",
+      "surface": "#0b1020",
+      "surface-2": "#10182c",
+      "foreground": "#eef2ff",
+      "muted-foreground": "#94a3b8",
+      "border": "rgb(148 163 184 / 0.14)",
+      "primary": "#60a5fa",
+      "accent": "#a78bfa",
+      "danger": "#f87171",
+      "success": "#34d399",
+      "warning": "#fbbf24"
+    },
+    "typography": {
+      "sans": "Geist",
+      "mono": "Geist Mono",
+      "headings": "semibold, tracking-tight, muted second clause"
+    },
+    "spacing": {},
+    "radius": {
+      "cards": "rounded-2xl",
+      "panels": "rounded-3xl",
+      "controls": "rounded-lg"
+    },
+    "shadows": {},
+    "motion": {
+      "content": "CSS scroll-driven .reveal only (visible in pre-rendered HTML)",
+      "illustrations": "motion/react loops (robot demo, terminal, beams), all respect prefers-reduced-motion"
+    },
+    "density": "comfortable"
+  },
+  "components": {
+    "installed": [
+      "accordion",
+      "animated-beam",
+      "border-beam",
+      "button",
+      "floating-header",
+      "github-icon",
+      "install-tabs",
+      "logo",
+      "minimal-footer",
+      "retro-grid",
+      "safari",
+      "terminal"
+    ],
+    "preferredPrimitives": [],
+    "patterns": []
+  },
+  "constraints": {
+    "must": [
+      "Content must be readable in the pre-rendered HTML (no opacity-0 initial states on text)",
+      "Real product copy and real blindqa output only \u2014 no invented customers, logos or metrics",
+      "Every interactive control keyboard-reachable with a visible focus ring"
+    ],
+    "avoid": [
+      "Entrance animations driven by JS on text content",
+      "Brand icons from lucide (removed in 1.x) \u2014 use components/ui/github-icon"
+    ]
+  },
+  "decisions": [
+    {
+      "date": "2026-10-05",
+      "decision": "Dark technical direction matching the social preview: navy background, blue primary, violet accent",
+      "source": "user request: best-looking landing page from 21st components"
+    },
+    {
+      "date": "2026-10-05",
+      "decision": "21st components used: Hero Section Dark #19, Floating Header #8137, Safari #1241, Script Copy Button #1095 (as install tabs), Terminal #28360, bento grid 01 #9594, Animated Beam #919, Border Beam #1268, Accordion #31351, Minimal Footer #7264",
+      "source": "21st search + get"
+    },
+    {
+      "date": "2026-10-05",
+      "decision": "Robot demo app keeps its own hard-coded palette (it depicts a different app); decorative glows use literal rgb values",
+      "source": "21st review design-hardcoded-color notes"
+    }
+  ],
+  "evidence": [
+    {
+      "fact": "components.installed",
+      "source": "src/components/ui"
+    },
+    {
+      "fact": "project.stack:react",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:tailwind-v4",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:vite",
+      "source": "package.json"
+    }
+  ],
+  "generatedAt": "2026-10-05T11:38:05.389Z"
+}

@@ -3,7 +3,6 @@ description: Human-like QA testing for any web app — a Claude Code and Codex p
 url: https://devzonayed.github.io
 baseurl: /blindqa
 lang: en
-theme: jekyll-theme-cayman
 logo: /assets/social-preview.png
 image: /assets/social-preview.png
 author:

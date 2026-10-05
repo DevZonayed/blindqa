@@ -44,7 +44,8 @@ Requirements: Node.js 20+, git. No build step — the code is plain ES modules.
 | `src/machine.mjs` | per-machine browser settings and detection |
 | `src/jev/` | optional Jev judgment engine |
 | `test/` | `npm test` |
-| `docs/` | user docs, also published as the website |
+| `docs/` | user docs, published as the website with GitHub Pages (Jekyll; layout in `docs/_layouts/`) |
+| `site/` | the landing page: React + Tailwind + components from 21st.dev, pre-rendered into `docs/index.html` |
 
 ## Rules every change follows
 1. **Keep the three surfaces in sync.** A new or changed command updates the CLI (`bin/blindqa.mjs` + its
@@ -76,6 +77,19 @@ Add it to `MODES` and `resolveBrowser` in `src/machine.mjs`, open it in `openSes
 `src/browser/session.mjs` (return the same `{ browser, context, page, close }` shape), add a reachability
 check in `src/doctor.mjs`, detection in `detectMachine`, and a section in `docs/BROWSERS.md` with exact
 setup steps. A mode that attaches to someone's own browser must use an isolated context.
+
+## The website
+The landing page lives in `site/` and is built into `docs/index.html` + `docs/assets/site/` (commit the
+output; GitHub Pages serves `docs/` as is):
+```
+cd site && npm install
+npm run dev          # live preview
+npm run typecheck && npm run build
+```
+The build pre-renders the page to static HTML (so search engines and link previews see all of it) and
+adds structured data (SoftwareApplication + FAQPage from `site/src/content.ts`). Keep text visible
+without JavaScript — use the `.reveal` CSS class for entrance effects, not JS-driven opacity. The other
+pages are the markdown files in `docs/`, rendered by Jekyll with `docs/_layouts/default.html`.
 
 ## Tests and checks
 - `npm test` must pass (CI runs it on Node 20 and 22).

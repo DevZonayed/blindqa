@@ -1,0 +1,64 @@
+/* Docs pages: the landing page's palette and type, in plain CSS (no build step for Jekyll pages). */
+:root {
+  color-scheme: dark;
+  --bg: #05070f; --surface: #0b1020; --surface-2: #10182c; --fg: #eef2ff; --muted: #94a3b8;
+  --border: rgb(148 163 184 / 0.14); --primary: #60a5fa; --danger: #f87171; --success: #34d399;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html { overflow-x: clip; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.7 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(ellipse 50% 40% at 50% -10%, rgb(96 165 250 / 0.14), transparent);
+  background-repeat: no-repeat;
+}
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+.wrap { width: min(1100px, calc(100% - 2rem)); margin-inline: auto; }
+
+.bar { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); background: rgb(5 7 15 / 0.7); border-bottom: 1px solid var(--border); }
+.nav { display: flex; align-items: center; gap: 1rem; height: 56px; }
+.brand { display: flex; align-items: center; gap: .5rem; color: var(--fg); font: 600 15px var(--mono); }
+.brand svg { width: 24px; height: 24px; }
+.brand b { color: var(--primary); font-weight: 600; }
+.brand:hover { text-decoration: none; }
+.links { display: flex; gap: .25rem; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.links a { color: var(--muted); font-size: 14px; padding: .35rem .65rem; border-radius: 8px; white-space: nowrap; }
+.links a:hover, .links a[aria-current] { color: var(--fg); background: rgb(255 255 255 / 0.05); text-decoration: none; }
+.gh { border: 1px solid var(--border); color: var(--fg); font-size: 14px; padding: .35rem .8rem; border-radius: 8px; }
+.gh:hover { background: rgb(255 255 255 / 0.05); text-decoration: none; }
+
+.doc { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 3rem; padding: 3rem 0 4rem; }
+.install { position: sticky; top: 80px; align-self: start; border: 1px solid var(--border); background: var(--surface); border-radius: 16px; padding: 1.1rem; font-size: 13px; color: var(--muted); }
+.install pre { margin: .5rem 0; font-size: 11.5px; }
+.eyebrow { margin: 0; font: 500 11px var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--primary); }
+
+.prose { min-width: 0; color: #d6deee; }
+.prose h1 { font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.15; letter-spacing: -0.03em; color: var(--fg); margin: 0 0 1.2rem; }
+.prose h2 { font-size: 1.5rem; letter-spacing: -0.02em; color: var(--fg); margin: 2.6rem 0 .8rem; padding-top: 1.4rem; border-top: 1px solid var(--border); }
+.prose h3 { font-size: 1.15rem; color: var(--fg); margin: 2rem 0 .6rem; }
+.prose p, .prose li { color: #c7d0e0; }
+.prose strong { color: var(--fg); }
+.prose ul, .prose ol { padding-left: 1.3rem; }
+.prose li { margin: .3rem 0; }
+.prose code { font: 0.86em var(--mono); background: rgb(255 255 255 / 0.06); border: 1px solid var(--border); padding: .1em .35em; border-radius: 6px; color: var(--fg); }
+pre { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; font: 13px/1.6 var(--mono); }
+pre code, .prose pre code { background: none; border: 0; padding: 0; font-size: inherit; color: #dbe4f5; }
+.highlight { background: none; }
+.prose table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: 14px; display: block; overflow-x: auto; }
+.prose th, .prose td { border-bottom: 1px solid var(--border); padding: .6rem .75rem; text-align: left; vertical-align: top; }
+.prose th { color: var(--fg); font-weight: 600; background: rgb(255 255 255 / 0.03); }
+.prose blockquote { margin: 1rem 0; padding: .2rem 1rem; border-left: 3px solid var(--primary); color: var(--muted); background: rgb(96 165 250 / 0.05); border-radius: 0 8px 8px 0; }
+.prose img { max-width: 100%; border-radius: 12px; border: 1px solid var(--border); }
+.prose hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; padding: 1.5rem 0 3rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+
+@media (max-width: 860px) {
+  .doc { grid-template-columns: 1fr; gap: 2rem; padding-top: 2rem; }
+  .install { position: static; }
+  .gh { display: none; }
+}

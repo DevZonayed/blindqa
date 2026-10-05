@@ -4,6 +4,9 @@ All notable changes to blindqa. Format: [Keep a Changelog](https://keepachangelo
 versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added
+- New landing page (`site/`), built from 21st.dev components and pre-rendered to static HTML with
+  structured data; docs pages restyled to match. CI type-checks and builds it.
 
 ## [0.2.0] — 2026-10-05
 ### Added
