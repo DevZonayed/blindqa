@@ -10,12 +10,12 @@
     "typecheck": "tsc -p . --noEmit"
   },
   "dependencies": {
-    "@base-ui/react": "^1.8.0",
+    "@base-ui/react": "^1.9.0",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.52.0",
-    "motion": "^14.0.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "lucide-react": "^1.63.0",
+    "motion": "^14.7.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
@@ -25,6 +25,6 @@
     "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.3.2"
+    "vite": "^8.3.5"
   }
 }
